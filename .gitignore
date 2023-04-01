@@ -4,3 +4,5 @@ data/
 vocab/
 temp/
 checkpoints/
+exBERT/
+scidocs/
