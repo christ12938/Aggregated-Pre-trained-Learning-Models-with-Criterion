@@ -1,0 +1,11 @@
+1. Explore Doc2Vec / SentenceBERT
+
+TODO:
+GPT-3
+Pretraining Bert with custom dataset (Increase batch size, re-preprocess data, or combine words)
+Account code for Parrlel Gpus
+
+Notes:
+1. Scidocs file contain "n/a" values, which will be read as nan values if na_filter is True
+2. Scidocs dataloader loads data like pd dataframe
+3. BertForPretraining Model get last hidden states using output_hidden_states param as True and output.hidden_states[-1]
