@@ -43,7 +43,7 @@ class CustomBert:
             self.optimizer.zero_grad()
             print(ext_out.prediction_logits.shape)
             # Mask output
-            # TODO: Change token target implementationvg
+            # TODO: Change token target implementation
             token_target = torch.zeros()
             token_target['input_ids'][ext_in_maskword_mask != True] = 0
 
