@@ -82,14 +82,13 @@ def get_word_embeddings_from_sentence(sentence: str, add_special_tokens: bool):
 def process_sentences(sentences_df: pd.DataFrame):
     result_dict = {}
     sentences_dict = sentences_df.to_dict('records')
-    count = 1
-    for row in sentences_dict:
+    for count, row in enumerate(sentences_dict):
         print("Processing Sentences ... [{curr} / {total}]".format(curr=str(count + 1), total=str(len(sentences_dict))),
               end='\r')
         # TODO: Too NAIVE
-        sentence = re.sub(r'[^\w\s\'-]|\d', ' ', row['sentence_1']).strip()
+        sentence = re.sub(r'[^\w\s\'-]|\d', ' ', row['sentences']).strip()
         sentence_embeddings, tensor_size = get_word_embeddings_from_sentence(sentence=sentence, add_special_tokens=True)
-        for idx, word in enumerate(list(filter(None, sentence.strip().split(" ")))):
+        for idx, word in enumerate(list(filter(None, sentence.strip().split()))):
             try:
                 if word not in result_dict:
                     result_dict[word] = [sentence_embeddings[idx].cpu().detach().numpy()]
@@ -115,9 +114,7 @@ def calculate_shortest_distance():
 
 
 if __name__ == "__main__":
-    dataset_512_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_dataset_512_no_punc_no_nsp_keep_dot.csv"
+    dataset_512_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_dataset_512_raw.csv"
     # TODO: Check NA Filter
     dataset_512_df = pd.read_csv(dataset_512_path, na_filter=False)#.sample(n=1000000, random_state=1)
-    #print(dataset_512_df)
     process_sentences(sentences_df=dataset_512_df)
-    #get_word_embeddings_from_sentence(sentence="exponent � ", add_special_tokens=True)
