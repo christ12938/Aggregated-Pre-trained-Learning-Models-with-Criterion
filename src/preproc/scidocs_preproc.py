@@ -5,6 +5,8 @@ import random
 from transformers import BertTokenizer, logging
 from collections import Counter
 
+from src.rules import get_sentence_split_rules, get_vocab_removal_rules
+
 
 class SciDocsPreprocess:
     def __init__(self,
@@ -12,11 +14,13 @@ class SciDocsPreprocess:
                  paper_metadata_recomm_path,
                  paper_metadata_view_cite_read_path,
                  vocab_path,
+                 keep_no_nsp,
                  max_len):
         self.scidocs_data = self.open_file(paper_metadata_mag_mesh_path, paper_metadata_recomm_path,
                                            paper_metadata_view_cite_read_path)
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.max_len = max_len
+        self.keep_no_nsp = keep_no_nsp
         self.scidocs_bert = None
         self.vocab_list = None
         self.vocab_path = vocab_path
@@ -49,19 +53,19 @@ class SciDocsPreprocess:
                 value['abstract'] = ''
             if value['title'] is None:
                 value['title'] = ''
-            abstracts = list(filter(None, re.split(r'[\r\n]+|\.\s|\?\s|\!\s|\:', value['abstract'].strip().lower())))
-            titles = list(filter(None, re.split(r'[\r\n]+|\.\s|\?\s|\!\s|\:', value['title'].strip().lower())))
+            abstracts = list(filter(None, re.split(get_sentence_split_rules(), value['abstract'].strip().lower())))
+            titles = list(filter(None, re.split(get_sentence_split_rules(), value['title'].strip().lower())))
             for i in range(0, len(abstracts)):
                 if i == len(abstracts) - 1:
-                    split_dict[count] = {"sentence": abstracts[i], "next_sentence_id": None}
+                    split_dict[count] = {"sentence": abstracts[i].strip(), "next_sentence_id": None}
                 else:
-                    split_dict[count] = {"sentence": abstracts[i], "next_sentence_id": count + 1}
+                    split_dict[count] = {"sentence": abstracts[i].strip(), "next_sentence_id": count + 1}
                 count += 1
             for i in range(0, len(titles)):
                 if i == len(titles) - 1:
-                    split_dict[count] = {"sentence": titles[i], "next_sentence_id": None}
+                    split_dict[count] = {"sentence": titles[i].strip(), "next_sentence_id": None}
                 else:
-                    split_dict[count] = {"sentence": titles[i], "next_sentence_id": count + 1}
+                    split_dict[count] = {"sentence": titles[i].strip(), "next_sentence_id": count + 1}
                 count += 1
         return split_dict
 
@@ -75,7 +79,10 @@ class SciDocsPreprocess:
                   end='\r')
             bert_dict["sentence_1"].append(value["sentence"])
             bert_dict["nsp"].append(1) if nsp_flag else bert_dict["nsp"].append(0)
-            if nsp_flag is True:
+
+            if self.keep_no_nsp:
+                bert_dict["sentence_2"].append(None)
+            elif nsp_flag is True:
                 if value["next_sentence_id"] is None:
                     bert_dict["sentence_1"].pop()
                     bert_dict["nsp"].pop()
@@ -124,14 +131,21 @@ class SciDocsPreprocess:
         sentence_2 = list(self.scidocs_bert.loc[:, "sentence_2"])
         combined_sentence = []
         for i in range(len(sentence_1)):
-            combined_sentence.append([sentence_1[i], sentence_2[i]])
+            if self.keep_no_nsp:
+                new_sentence_1 = re.sub(r'[^\w\s\'-]|\d', ' ', sentence_1[i])
+                combined_sentence.append(new_sentence_1)
+            else:
+                combined_sentence.append([sentence_1[i], sentence_2[i]])
+
         print("\nTokenizing Dataset ... ")
         tokenized = self.tokenizer(combined_sentence, add_special_tokens=False, truncation=True,
                                    max_length=self.max_len - 3)
         vocab_list = []
         print("Decoding Dataset ... ")
-        for i in tokenized['input_ids']:
-            vocab_list.extend(list(filter(None, re.split(r"\s|\,|\?|\!|\:|\.", self.tokenizer.decode(i).strip()))))
+        for idx, i in enumerate(tokenized['input_ids']):
+            print("Decoding Dataset ... [{curr} / {total}]".format(curr=str(idx + 1), total=str(len(tokenized['input_ids']))),
+                  end='\r')
+            vocab_list.extend(list(filter(None, self.tokenizer.decode(i).strip().split(" "))))
         vocab_dict = Counter(vocab_list)
         bert_vocab_list = []
         f = open(self.vocab_path, "r", encoding="utf-8")
