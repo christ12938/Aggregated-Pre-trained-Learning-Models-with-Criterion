@@ -57,6 +57,25 @@ class VocabEmbeddings:
         pd.DataFrame(list(self.vocab_embed_dict.items()), columns=['vocabs', 'embeddings']).to_pickle(save_path)
 
 
+class SeedEmbeddings:
+    def __init__(self, seeds_list: list, model_options: str):
+        self.seeds_list = seeds_list
+        self.seed_embed_dict = None
+        self.model_options = model_options
+
+    def process_seeds(self):
+        result_dict = {key: [] for key in self.seeds_list}
+        for seed in tqdm(self.seeds_list, desc="Processing Seeds"):
+            result_dict[seed].append(
+                get_word_embeddings(seed_word=seed.strip(), add_special_tokens=True,
+                                    model_options=self.model_options).cpu().detach().numpy())
+        self.seed_embed_dict = result_dict
+
+    def save_seed_embeddings(self, save_path: str):
+        print("Saving Seed Embeddings ...")
+        pd.DataFrame(list(self.seed_embed_dict.items()), columns=['seeds', 'embeddings']).to_pickle(save_path)
+
+
 if __name__ == "__main__":
     vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_vocab_no_punc_no_special_char_keep_apos_hyphens.csv"
 
