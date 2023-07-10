@@ -45,11 +45,10 @@ class VocabEmbeddings:
     def process_vocabs(self):
         vocab_list = list(
             pd.read_csv(self.vocab_path, na_filter=False).loc[:, "vocab"])  # .sample(n=1000000, random_state=1)
-        result_dict = {key: [] for key in vocab_list}
+        result_dict = {}
         for vocab in tqdm(vocab_list, desc="Processing Vocabs"):
-            result_dict[vocab].append(
-                get_word_embeddings(seed_word=vocab.strip(), add_special_tokens=True,
-                                    model_options=self.model_options).cpu().detach().numpy())
+            result_dict[vocab] = get_word_embeddings(seed_word=vocab.strip(), add_special_tokens=True,
+                                                     model_options=self.model_options).cpu().detach().numpy()
         self.vocab_embed_dict = result_dict
 
     def save_vocab_embeddings(self, save_path: str):
@@ -64,11 +63,10 @@ class SeedEmbeddings:
         self.model_options = model_options
 
     def process_seeds(self):
-        result_dict = {key: [] for key in self.seeds_list}
+        result_dict = {}
         for seed in tqdm(self.seeds_list, desc="Processing Seeds"):
-            result_dict[seed].append(
-                get_word_embeddings(seed_word=seed.strip(), add_special_tokens=True,
-                                    model_options=self.model_options).cpu().detach().numpy())
+            result_dict[seed] = get_word_embeddings(seed_word=seed.strip(), add_special_tokens=True,
+                                                    model_options=self.model_options).cpu().detach().numpy()
         self.seed_embed_dict = result_dict
 
     def save_seed_embeddings(self, save_path: str):
