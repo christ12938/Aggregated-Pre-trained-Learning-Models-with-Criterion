@@ -44,7 +44,7 @@ class VocabEmbeddings:
 
     def process_vocabs(self):
         vocab_list = list(
-            pd.read_csv(self.vocab_path, na_filter=False).loc[:, "vocab"])  # .sample(n=1000000, random_state=1)
+            pd.read_pickle(self.vocab_path).loc[:, "vocab"])  # .sample(n=1000000, random_state=1)
         result_dict = {}
         for vocab in tqdm(vocab_list, desc="Processing Vocabs"):
             result_dict[vocab] = get_word_embeddings(seed_word=vocab.strip(), add_special_tokens=True,
@@ -75,7 +75,7 @@ class SeedEmbeddings:
 
 
 if __name__ == "__main__":
-    vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_vocab_no_punc_no_special_char_keep_apos_hyphens.csv"
+    vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_vocab_no_punc_no_special_char_keep_apos_hyphens.pkl"
 
     vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/vocab_tensors_bert_base.pkl"
     vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/vocab_tensors_scibert.pkl"

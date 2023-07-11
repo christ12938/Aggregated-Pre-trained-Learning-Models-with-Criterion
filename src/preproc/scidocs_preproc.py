@@ -36,6 +36,7 @@ class SciDocsPreprocess:
     # Split dataset on punctuations
     def split_dataset(self):
         sentence_list = []
+        paper_id_list = []
         for key, value in tqdm(self.scidocs_data.items(), desc="Splitting Dataset"):
             if value['abstract'] is None:
                 value['abstract'] = ''
@@ -47,17 +48,26 @@ class SciDocsPreprocess:
                 sentence_list.append(abstract.strip())
             for title in titles:
                 sentence_list.append(title.strip())
-        return pd.DataFrame(sentence_list, columns=['sentences'])
+            paper_id_list.extend([value['paper_id'].strip()] * (len(abstracts) + len(titles)))
+        return pd.DataFrame({'sentence': sentence_list, 'paper_id': paper_id_list}, columns=['sentence', 'paper_id'])
 
     def create_vocab_list(self):
         vocab_dict = {}
-        sentences = list(self.split_sentences.loc[:, "sentences"])
-        for sentence in tqdm(sentences, desc="Creating Vocabulary"):
+        paper_id_dict = {}
+        sentences = list(self.split_sentences.loc[:, 'sentence'])
+        paper_ids = list(self.split_sentences.loc[:, 'paper_id'])
+        for sentence, paper_id in tqdm(zip(sentences, paper_ids), total=len(sentences), desc="Creating Vocabulary"):
             clean_vocabs = list(filter(None, re.sub(get_vocab_removal_rules(), ' ', sentence).strip().split()))
             for vocab in clean_vocabs:
                 vocab_dict.setdefault(vocab, 0)
                 vocab_dict[vocab] += 1
-        return pd.DataFrame(list(vocab_dict.items()), columns=['vocab', 'count'])
+                paper_id_dict.setdefault(vocab, [])
+                paper_id_dict[vocab].append(paper_id)
+        vocab_dict_df = pd.DataFrame(list(vocab_dict.items()), columns=['vocab', 'count'])
+        # Remove duplicates
+        paper_id_dict = {key: list(set(val)) for key, val in paper_id_dict.items()}
+        paper_id_dict_df = pd.DataFrame(list(paper_id_dict.items()), columns=['vocab', 'paper_ids'])
+        return pd.merge(vocab_dict_df, paper_id_dict_df, on='vocab')
 
     def prepare_dataset(self):
         print("Creating Scidocs Dataset ...")
@@ -68,8 +78,8 @@ class SciDocsPreprocess:
 
     def save_scidocs_data(self, save_path):
         print("\nSaving Dataset ... ")
-        self.split_sentences.to_csv(save_path, index=False)
+        self.split_sentences.to_pickle(save_path)
 
     def save_vocab_list(self, save_path):
         print("\nSaving Vocab List ... ")
-        self.vocab_list.to_csv(save_path, index=False)
+        self.vocab_list.to_pickle(save_path)
