@@ -12,4 +12,4 @@ if __name__ == "__main__":
 
     scidocs_preproc.prepare_dataset()
     scidocs_preproc.save_scidocs_data(save_path="../data/scidocs_data/scidocs_dataset_sentence_split_raw.pkl")
-    scidocs_preproc.save_vocab_list(save_path="../data/scidocs_data/scidocs_vocab_no_punc_no_special_char_keep_apos_hyphens.pkl")
+    scidocs_preproc.save_vocab_list(save_path="../data/scidocs_data/scidocs_vocab_cased.pkl")

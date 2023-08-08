@@ -42,8 +42,8 @@ class SciDocsPreprocess:
                 value['abstract'] = ''
             if value['title'] is None:
                 value['title'] = ''
-            abstracts = list(filter(None, re.split(get_sentence_split_rules(), value['abstract'].strip().lower())))
-            titles = list(filter(None, re.split(get_sentence_split_rules(), value['title'].strip().lower())))
+            abstracts = list(filter(None, re.split(get_sentence_split_rules(), value['abstract'].strip())))
+            titles = list(filter(None, re.split(get_sentence_split_rules(), value['title'].strip())))
             for abstract in abstracts:
                 sentence_list.append(abstract.strip())
             for title in titles:
@@ -61,11 +61,10 @@ class SciDocsPreprocess:
             for vocab in clean_vocabs:
                 vocab_dict.setdefault(vocab, 0)
                 vocab_dict[vocab] += 1
-                paper_id_dict.setdefault(vocab, [])
-                paper_id_dict[vocab].append(paper_id)
+                paper_id_dict.setdefault(vocab, {})
+                paper_id_dict[vocab].setdefault(paper_id, 0)
+                paper_id_dict[vocab][paper_id] += 1
         vocab_dict_df = pd.DataFrame(list(vocab_dict.items()), columns=['vocab', 'count'])
-        # Remove duplicates
-        paper_id_dict = {key: list(set(val)) for key, val in paper_id_dict.items()}
         paper_id_dict_df = pd.DataFrame(list(paper_id_dict.items()), columns=['vocab', 'paper_ids'])
         return pd.merge(vocab_dict_df, paper_id_dict_df, on='vocab')
 

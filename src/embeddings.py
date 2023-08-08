@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import torch
 from tqdm import tqdm
@@ -11,6 +13,9 @@ bert_base_model = AutoModel.from_pretrained('bert-base-uncased').to(device)
 scibert_tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
 scibert_model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased').to(device)
 
+#legalbert_tokenizer = AutoTokenizer.from_pretrained("nlpaueb/legal-bert-base-uncased")
+#legalbert_model = AutoModel.from_pretrained("nlpaueb/legal-bert-base-uncased").to(device)
+
 
 def convert_words_to_embeddings(word: str, add_special_tokens: bool, model_options: str):
     if model_options == "bert_base":
@@ -21,6 +26,11 @@ def convert_words_to_embeddings(word: str, add_special_tokens: bool, model_optio
         inputs = scibert_tokenizer(word, add_special_tokens=add_special_tokens, return_tensors="pt").to(device)
         outputs = scibert_model(**inputs)
         return outputs.last_hidden_state
+    elif model_options == "legalbert":
+        #inputs = legalbert_tokenizer(word, add_special_tokens=add_special_tokens, return_tensors="pt").to(device)
+        #outputs = legalbert_model(**inputs)
+        #return outputs.last_hidden_state
+        return None
 
 
 def mean_subwords_embeddings(subwords: torch.Tensor, add_special_tokens: bool):
@@ -70,22 +80,147 @@ class SeedEmbeddings:
         self.seed_embed_dict = result_dict
 
     def save_seed_embeddings(self, save_path: str):
+        sys.stderr.flush()
         print("Saving Seed Embeddings ...")
         pd.DataFrame(list(self.seed_embed_dict.items()), columns=['seeds', 'embeddings']).to_pickle(save_path)
 
 
 if __name__ == "__main__":
-    vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_data/scidocs_vocab_no_punc_no_special_char_keep_apos_hyphens.pkl"
+    scidocs_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/scidocs_vocab.pkl"
+    amazon_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/amazon_vocab.pkl"
+    twitter_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/twitter_vocab.pkl"
+    legal_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/legal_vocab.pkl"
+    merged_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/merged_vocab.pkl"
 
-    vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/vocab_tensors_bert_base.pkl"
-    vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/vocab_tensors_scibert.pkl"
+    scidocs_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_bert_base_uncased.pkl"
+    scidocs_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_scibert_uncased.pkl"
+    scidocs_vocab_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_legalbert_uncased.pkl"
 
-    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=vocab_path, model_options="bert_base")
+    amazon_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_bert_base_uncased.pkl"
+    amazon_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_scibert_uncased.pkl"
+    amazon_vocab_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_legalbert_uncased.pkl"
+
+    twitter_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_vocab_tensors_bert_base_uncased.pkl"
+    twitter_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_vocab_tensors_scibert_uncased.pkl"
+    twitter_vocab_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_vocab_tensors_legalbert_uncased.pkl"
+
+    legal_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_vocab_tensors_bert_base_uncased.pkl"
+    legal_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_vocab_tensors_scibert_uncased.pkl"
+    legal_vocab_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_vocab_tensors_legalbert_uncased.pkl"
+
+    merged_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_bert_base_uncased.pkl"
+    merged_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_scibert_uncased.pkl"
+    merged_vocab_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_legalbert_uncased.pkl"
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="bert_base")
     bert_base_vocab_embeds.process_vocabs()
-    bert_base_vocab_embeds.save_vocab_embeddings(save_path=vocab_embed_bert_base_save_path)
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_bert_base_save_path)
     del bert_base_vocab_embeds
 
-    scibert_vocab_embeds = VocabEmbeddings(vocab_path=vocab_path, model_options="scibert")
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="scibert")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_scibert_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="scibert")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_scibert_save_path)
+    del bert_base_vocab_embeds
+
+    """
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="scibert")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_scibert_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=twitter_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=twitter_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=twitter_vocab_path, model_options="scibert")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=twitter_vocab_embed_scibert_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="scibert")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_scibert_save_path)
+    del bert_base_vocab_embeds
+
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=twitter_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=twitter_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=legal_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=legal_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="bert_base")
+    bert_base_vocab_embeds.process_vocabs()
+    bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_bert_base_save_path)
+    del bert_base_vocab_embeds
+
+    scibert_vocab_embeds = VocabEmbeddings(vocab_path=twitter_vocab_path, model_options="scibert")
     scibert_vocab_embeds.process_vocabs()
-    scibert_vocab_embeds.save_vocab_embeddings(save_path=vocab_embed_scibert_save_path)
+    scibert_vocab_embeds.save_vocab_embeddings(save_path=twitter_vocab_embed_scibert_save_path)
     del scibert_vocab_embeds
+
+    scibert_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="scibert")
+    scibert_vocab_embeds.process_vocabs()
+    scibert_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_scibert_save_path)
+    del scibert_vocab_embeds
+
+    scibert_vocab_embeds = VocabEmbeddings(vocab_path=legal_vocab_path, model_options="scibert")
+    scibert_vocab_embeds.process_vocabs()
+    scibert_vocab_embeds.save_vocab_embeddings(save_path=legal_vocab_embed_scibert_save_path)
+    del scibert_vocab_embeds
+
+    scibert_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="scibert")
+    scibert_vocab_embeds.process_vocabs()
+    scibert_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_scibert_save_path)
+    del scibert_vocab_embeds
+
+    legalbert_vocab_embeds = VocabEmbeddings(vocab_path=twitter_vocab_path, model_options="legalbert")
+    legalbert_vocab_embeds.process_vocabs()
+    legalbert_vocab_embeds.save_vocab_embeddings(save_path=twitter_vocab_embed_legalbert_save_path)
+    del legalbert_vocab_embeds
+
+    legalbert_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="legalbert")
+    legalbert_vocab_embeds.process_vocabs()
+    legalbert_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_legalbert_save_path)
+    del legalbert_vocab_embeds
+
+    legalbert_vocab_embeds = VocabEmbeddings(vocab_path=legal_vocab_path, model_options="legalbert")
+    legalbert_vocab_embeds.process_vocabs()
+    legalbert_vocab_embeds.save_vocab_embeddings(save_path=legal_vocab_embed_legalbert_save_path)
+    del legalbert_vocab_embeds
+
+    legalbert_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="legalbert")
+    legalbert_vocab_embeds.process_vocabs()
+    legalbert_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_legalbert_save_path)
+    del legalbert_vocab_embeds
+    """

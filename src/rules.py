@@ -1,7 +1,7 @@
 
 # re string for all punctuations except ' . and -
 def get_vocab_removal_rules():
-    return r'[^\w\s\'-]|\d'
+    return r'[^\w\s\-]'
 
 
 # re string for sentence split rules
