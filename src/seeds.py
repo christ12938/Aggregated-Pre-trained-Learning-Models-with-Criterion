@@ -66,9 +66,15 @@ def get_legal_seeds():
     return seeds
 
 
-def get_merged_list_seeds():
+def get_french_seeds():
+    seeds = ["histoire et révolution", "faune et flore", "énergies renouvelables", "élections municipales",
+             "littérature contemporaine", "écoles élémentaires", "pâtisseries françaises", "châteaux historiques"]
+    return seeds
+
+
+def get_merged_seeds(seeds: list):
     # Merge the lists
-    merged_list = list(set(get_scidocs_seeds() + get_amazon_seeds()))
+    merged_list = list(set(seeds))
     # Shuffle the merged list
     #random.shuffle(merged_list)
     print(merged_list)
@@ -76,114 +82,82 @@ def get_merged_list_seeds():
 
 
 if __name__ == "__main__":
+
     scidocs_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_bert_base_uncased.pkl"
     scidocs_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_scibert_uncased.pkl"
-    scidocs_seed_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_legalbert_uncased.pkl"
+    scidocs_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_flaubert_uncased.pkl"
 
     amazon_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_bert_base_uncased.pkl"
     amazon_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_scibert_uncased.pkl"
-    amazon_seed_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_legalbert_uncased.pkl"
+    amazon_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_flaubert_uncased.pkl"
 
-    twitter_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_seed_tensors_bert_base_uncased_alt_seeds.pkl"
-    twitter_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_seed_tensors_scibert_uncased_alt_seeds.pkl"
-    twitter_seed_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/twitter_seed_tensors_legalbert_uncased.pkl"
-
-    legal_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_seed_tensors_bert_base_uncased.pkl"
-    legal_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_seed_tensors_scibert_uncased.pkl"
-    legal_seed_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/legal_seed_tensors_legalbert_uncased.pkl"
+    french_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_bert_base_uncased.pkl"
+    french_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_scibert_uncased.pkl"
+    french_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_flaubert_uncased.pkl"
 
     merged_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_bert_base_uncased.pkl"
     merged_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_scibert_uncased.pkl"
-    merged_seed_embed_legalbert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_legalbert_uncased.pkl"
+    merged_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_flaubert_uncased.pkl"
+    
+    merged_seeds = get_scidocs_seeds() + get_amazon_seeds() + get_french_seeds()
 
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="bert_base")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_bert_base_save_path)
-    del bert_base_seed_embeds
 
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="scibert")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_scibert_save_path)
-    del bert_base_seed_embeds
-
-    """
     bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_scidocs_seeds(), model_options="bert_base")
     bert_base_seed_embeds.process_seeds()
     bert_base_seed_embeds.save_seed_embeddings(save_path=scidocs_seed_embed_bert_base_save_path)
     del bert_base_seed_embeds
 
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_scidocs_seeds(), model_options="scibert")
+    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_amazon_seeds(), model_options="bert_base")
     bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=scidocs_seed_embed_scibert_save_path)
+    bert_base_seed_embeds.save_seed_embeddings(save_path=amazon_seed_embed_bert_base_save_path)
     del bert_base_seed_embeds
 
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_twitter_seeds(), model_options="bert_base")
+    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_french_seeds(), model_options="bert_base")
     bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=twitter_seed_embed_bert_base_save_path)
+    bert_base_seed_embeds.save_seed_embeddings(save_path=french_seed_embed_bert_base_save_path)
     del bert_base_seed_embeds
 
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_twitter_seeds(), model_options="scibert")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=twitter_seed_embed_scibert_save_path)
-    del bert_base_seed_embeds
-
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="bert_base")
+    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_seeds(seeds=merged_seeds), model_options="bert_base")
     bert_base_seed_embeds.process_seeds()
     bert_base_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_bert_base_save_path)
     del bert_base_seed_embeds
-
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="scibert")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_scibert_save_path)
-    del bert_base_seed_embeds
-
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_legal_seeds(), model_options="bert_base")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=legal_seed_embed_bert_base_save_path)
-    del bert_base_seed_embeds
-
-    bert_base_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="bert_base")
-    bert_base_seed_embeds.process_seeds()
-    bert_base_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_bert_base_save_path)
-    del bert_base_seed_embeds
-
-    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_twitter_seeds(), model_options="scibert")
-    scibert_seed_embeds.process_seeds()
-    scibert_seed_embeds.save_seed_embeddings(save_path=twitter_seed_embed_scibert_save_path)
-    del scibert_seed_embeds
 
     scibert_seed_embeds = SeedEmbeddings(seeds_list=get_scidocs_seeds(), model_options="scibert")
     scibert_seed_embeds.process_seeds()
     scibert_seed_embeds.save_seed_embeddings(save_path=scidocs_seed_embed_scibert_save_path)
     del scibert_seed_embeds
 
-    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_legal_seeds(), model_options="scibert")
+    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_amazon_seeds(), model_options="scibert")
     scibert_seed_embeds.process_seeds()
-    scibert_seed_embeds.save_seed_embeddings(save_path=legal_seed_embed_scibert_save_path)
+    scibert_seed_embeds.save_seed_embeddings(save_path=amazon_seed_embed_scibert_save_path)
     del scibert_seed_embeds
 
-    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="scibert")
+    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_french_seeds(), model_options="scibert")
+    scibert_seed_embeds.process_seeds()
+    scibert_seed_embeds.save_seed_embeddings(save_path=french_seed_embed_scibert_save_path)
+    del scibert_seed_embeds
+
+    scibert_seed_embeds = SeedEmbeddings(seeds_list=get_merged_seeds(seeds=merged_seeds), model_options="scibert")
     scibert_seed_embeds.process_seeds()
     scibert_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_scibert_save_path)
     del scibert_seed_embeds
 
-    legalbert_seed_embeds = SeedEmbeddings(seeds_list=get_twitter_seeds(), model_options="legalbert")
-    legalbert_seed_embeds.process_seeds()
-    legalbert_seed_embeds.save_seed_embeddings(save_path=twitter_seed_embed_legalbert_save_path)
-    del legalbert_seed_embeds
+    flaubert_seed_embeds = SeedEmbeddings(seeds_list=get_scidocs_seeds(), model_options="flaubert")
+    flaubert_seed_embeds.process_seeds()
+    flaubert_seed_embeds.save_seed_embeddings(save_path=scidocs_seed_embed_flaubert_save_path)
+    del flaubert_seed_embeds
 
-    legalbert_seed_embeds = SeedEmbeddings(seeds_list=get_scidocs_seeds(), model_options="legalbert")
-    legalbert_seed_embeds.process_seeds()
-    legalbert_seed_embeds.save_seed_embeddings(save_path=scidocs_seed_embed_legalbert_save_path)
-    del legalbert_seed_embeds
+    flaubert_seed_embeds = SeedEmbeddings(seeds_list=get_amazon_seeds(), model_options="flaubert")
+    flaubert_seed_embeds.process_seeds()
+    flaubert_seed_embeds.save_seed_embeddings(save_path=amazon_seed_embed_flaubert_save_path)
+    del flaubert_seed_embeds
 
-    legalbert_seed_embeds = SeedEmbeddings(seeds_list=get_legal_seeds(), model_options="legalbert")
-    legalbert_seed_embeds.process_seeds()
-    legalbert_seed_embeds.save_seed_embeddings(save_path=legal_seed_embed_legalbert_save_path)
-    del legalbert_seed_embeds
+    flaubert_seed_embeds = SeedEmbeddings(seeds_list=get_french_seeds(), model_options="flaubert")
+    flaubert_seed_embeds.process_seeds()
+    flaubert_seed_embeds.save_seed_embeddings(save_path=french_seed_embed_flaubert_save_path)
+    del flaubert_seed_embeds
 
-    legalbert_seed_embeds = SeedEmbeddings(seeds_list=get_merged_list_seeds(), model_options="legalbert")
-    legalbert_seed_embeds.process_seeds()
-    legalbert_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_legalbert_save_path)
-    del legalbert_seed_embeds
-    """
+    flaubert_seed_embeds = SeedEmbeddings(seeds_list=get_merged_seeds(seeds=merged_seeds), model_options="flaubert")
+    flaubert_seed_embeds.process_seeds()
+    flaubert_seed_embeds.save_seed_embeddings(save_path=merged_seed_embed_flaubert_save_path)
+    del flaubert_seed_embeds

@@ -75,7 +75,8 @@ final_string = ["nanotechnology", "pharmaceutics", "audiology", "viromics", "bio
 
 fr_string = ["n'ouvrez", "nouvrez", "stickgoldet", "réveillerez", "reveillerez"]
 
-fr_string_2 = ["histoire et révolution"]
+fr_string_2 = ["histoire et révolution", "faune et flore", "énergies renouvelables", "élections municipales",
+               "littérature contemporaine", "écoles élémentaires", "pâtisseries françaises", "châteaux historiques"]
 
 
 def check_vocabs_contain_seeds(seeds: list, vocab_df: pd.DataFrame):
