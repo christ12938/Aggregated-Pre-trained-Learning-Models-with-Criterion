@@ -1,8 +1,5 @@
 .idea
 __pycache__/
 data/
-vocab/
-temp/
-checkpoints/
-exBERT/
-scidocs/
+data_bck/
+garbage/
