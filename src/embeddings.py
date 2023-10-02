@@ -13,6 +13,9 @@ bert_base_model = AutoModel.from_pretrained('bert-base-uncased').to(device)
 scibert_tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
 scibert_model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased').to(device)
 
+flaubert_tokenizer = AutoTokenizer.from_pretrained('flaubert/flaubert_base_uncased')
+flaubert_model = AutoModel.from_pretrained('flaubert/flaubert_base_uncased').to(device)
+
 #legalbert_tokenizer = AutoTokenizer.from_pretrained("nlpaueb/legal-bert-base-uncased")
 #legalbert_model = AutoModel.from_pretrained("nlpaueb/legal-bert-base-uncased").to(device)
 
@@ -31,7 +34,10 @@ def convert_words_to_embeddings(word: str, add_special_tokens: bool, model_optio
         #outputs = legalbert_model(**inputs)
         #return outputs.last_hidden_state
         return None
-
+    elif model_options == "flaubert":
+        inputs = flaubert_tokenizer(word, add_special_tokens=add_special_tokens, return_tensors="pt").to(device)
+        outputs = flaubert_model(**inputs)
+        return outputs.last_hidden_state
 
 def mean_subwords_embeddings(subwords: torch.Tensor, add_special_tokens: bool):
     if add_special_tokens:

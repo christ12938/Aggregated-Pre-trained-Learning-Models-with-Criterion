@@ -1,4 +1,6 @@
 import pandas as pd
+from tqdm import tqdm
+
 
 result = {}
 search_strings = ["lawsuit", "litigation", "plaintiff", "defendant", "case", "trial", "appeal", "court", "judge",
@@ -70,16 +72,37 @@ final_string = ["nanotechnology", "pharmaceutics", "audiology", "viromics", "bio
                 "chikungunya", "dysentery", "cryptocurrency", "AI", "veganism", "freelancing", "hiking", "quilting",
                 "upcycling", "e-sports", "motorcycling", "paranormal", "misdemeanor", "desegregation", "cybercrime",
                 "replevin", "usury", "venire", "arraignment", "codicil", "vagrancy"]
-# Loop over each string in the list
-df = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/merged_vocab.pkl")
-for string in final_string:
-    flag = True
-    for split_string in string.split():
-        contains_string = df['vocab'].str.contains(split_string).any()
-        if contains_string:
-            flag = False
-            break
-    if flag:
-        result[string] = True
 
-print(result)
+fr_string = ["n'ouvrez", "nouvrez", "stickgoldet", "réveillerez", "reveillerez"]
+
+fr_string_2 = ["histoire et révolution"]
+
+
+def check_vocabs_contain_seeds(seeds: list, vocab_df: pd.DataFrame):
+    matched_seeds = []
+    for seed in tqdm(seeds, desc='Checking if vocab contains seeds'):
+        for split_seed in seed.split():
+            if vocab_df['vocab'].str.contains(split_seed).any():
+                matched_seeds.append(seed)
+                break
+    print(matched_seeds)
+
+
+def check_vocabs_has_seeds(seeds: list, vocab_df: pd.DataFrame):
+    matched_seeds = []
+    for seed in tqdm(seeds, desc='Checking if vocabs has seeds'):
+        if seed in vocab_df['vocab'].values:
+            matched_seeds.append(seed)
+    print(matched_seeds)
+
+
+if __name__ == '__main__':
+    
+    # Loop over each string in the list
+    vocab_df = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/french_data/french_vocab.pkl")
+    seeds = fr_string_2
+
+    check_vocabs_contain_seeds(seeds=seeds, vocab_df=vocab_df)
+    check_vocabs_has_seeds(seeds=seeds, vocab_df=vocab_df)
+    
+    print(vocab_df)
