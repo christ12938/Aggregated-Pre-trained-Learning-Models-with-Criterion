@@ -1,12 +1,12 @@
 import pandas as pd
-from utils import create_vocab_info_df
+from utils import create_vocab_info_df, create_folder
 
 
 class MergedPreprocess():
     def __init__(self, sentences: list, id_prefix):
         self.sentences = sentences
         self.vocab_info_df = None
-        self.id_prefix
+        self.id_prefix = id_prefix
 
 
     def preprocess(self):
@@ -16,5 +16,6 @@ class MergedPreprocess():
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving Merged Vocab Info ... ")
+        create_folder(path=save_path)
         self.vocab_info_df.to_pickle(save_path)
 

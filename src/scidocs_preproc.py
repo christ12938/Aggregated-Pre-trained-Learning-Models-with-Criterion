@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 from tqdm import tqdm
-from utils import clean_sentence, create_vocab_info_df
+from utils import clean_sentence, create_vocab_info_df, create_folder
 
 
 class SciDocsPreprocess:
@@ -9,7 +9,8 @@ class SciDocsPreprocess:
             paper_metadata_mag_mesh_path: str,
             paper_metadata_recomm_path: str,
             paper_metadata_view_cite_read_path: str, 
-            id_prefix: str):
+            id_prefix: str,
+            sample=1):
         
         self.scidocs_data = self.open_file(paper_metadata_mag_mesh_path, paper_metadata_recomm_path,
                                            paper_metadata_view_cite_read_path)
@@ -17,6 +18,7 @@ class SciDocsPreprocess:
         self.data_dict = {}
         self.vocab_info_df = None
         self.id_prefix = id_prefix
+        self.sample = sample
 
 
     @staticmethod
@@ -39,7 +41,7 @@ class SciDocsPreprocess:
 
     # Split dataset on punctuations
     def preprocess(self):
-        for key, value in tqdm(self.scidocs_data.items(), desc="Splitting Dataset"):
+        for key, value in tqdm(self.scidocs_data.items(), desc="Processing Scidocs Dataset"):
             if value['abstract'] is None:
                 value['abstract'] = ''
             if value['title'] is None:
@@ -56,7 +58,8 @@ class SciDocsPreprocess:
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving Scidocs Vocab Info ... ")
-        self.vocab_info_df.to_pickle(save_path)
+        create_folder(path=save_path)
+        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
 
 
 

@@ -2,6 +2,7 @@ import sys
 
 import pandas as pd
 import torch
+from utils import create_folder
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModel
 
@@ -69,7 +70,8 @@ class VocabEmbeddings:
 
     def save_vocab_embeddings(self, save_path: str):
         print("Saving Vocab Embeddings ...")
-        pd.DataFrame(list(self.vocab_embed_dict.items()), columns=['vocabs', 'embeddings']).to_pickle(save_path)
+        create_folder(path=save_path)
+        pd.DataFrame(list(self.vocab_embed_dict.items()), columns=['vocab', 'embedding']).to_pickle(save_path)
 
 
 class SeedEmbeddings:
@@ -88,32 +90,33 @@ class SeedEmbeddings:
     def save_seed_embeddings(self, save_path: str):
         sys.stderr.flush()
         print("Saving Seed Embeddings ...")
-        pd.DataFrame(list(self.seed_embed_dict.items()), columns=['seeds', 'embeddings']).to_pickle(save_path)
+        create_folder(path=save_path)
+        pd.DataFrame(list(self.seed_embed_dict.items()), columns=['seed', 'embedding']).to_pickle(save_path)
 
 
 if __name__ == "__main__":
 
-    scidocs_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/scidocs_vocab.pkl"
-    amazon_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/amazon_vocab.pkl"
-    french_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/french_vocab.pkl"
-    merged_vocab_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/new_result_data/merged_vocab.pkl"
+    scidocs_vocab_path = "data/scidocs_vocab.pkl"
+    amazon_vocab_path = "data/amazon_vocab.pkl"
+    french_vocab_path = "data/xlsum_fr_vocab.pkl"
+    merged_vocab_path = "data/merged_vocab.pkl"
     
 
-    scidocs_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_bert_base_uncased.pkl"
-    scidocs_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_scibert_uncased.pkl"
-    scidocs_vocab_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_vocab_tensors_flaubert_uncased.pkl"
+    scidocs_vocab_embed_bert_base_save_path = "embeddings/scidocs_vocab_tensors_bert_base_uncased.pkl"
+    scidocs_vocab_embed_scibert_save_path = "embeddings/scidocs_vocab_tensors_scibert_uncased.pkl"
+    scidocs_vocab_embed_flaubert_save_path = "embeddings/scidocs_vocab_tensors_flaubert_uncased.pkl"
 
-    amazon_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_bert_base_uncased.pkl"
-    amazon_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_scibert_uncased.pkl"
-    amazon_vocab_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_vocab_tensors_flaubert_uncased.pkl"
+    amazon_vocab_embed_bert_base_save_path = "embeddings/amazon_vocab_tensors_bert_base_uncased.pkl"
+    amazon_vocab_embed_scibert_save_path = "embeddings/amazon_vocab_tensors_scibert_uncased.pkl"
+    amazon_vocab_embed_flaubert_save_path = "embeddings/amazon_vocab_tensors_flaubert_uncased.pkl"
     
-    french_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_vocab_tensors_bert_base_uncased.pkl"
-    french_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_vocab_tensors_scibert_uncased.pkl"
-    french_vocab_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_vocab_tensors_flaubert_uncased.pkl"
+    french_vocab_embed_bert_base_save_path = "embeddings/french_vocab_tensors_bert_base_uncased.pkl"
+    french_vocab_embed_scibert_save_path = "embeddings/french_vocab_tensors_scibert_uncased.pkl"
+    french_vocab_embed_flaubert_save_path = "embeddings/french_vocab_tensors_flaubert_uncased.pkl"
     
-    merged_vocab_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_bert_base_uncased.pkl"
-    merged_vocab_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_scibert_uncased.pkl"
-    merged_vocab_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_vocab_tensors_flaubert_uncased.pkl"
+    merged_vocab_embed_bert_base_save_path = "embeddings/merged_vocab_tensors_bert_base_uncased.pkl"
+    merged_vocab_embed_scibert_save_path = "embeddings/merged_vocab_tensors_scibert_uncased.pkl"
+    merged_vocab_embed_flaubert_save_path = "embeddings/merged_vocab_tensors_flaubert_uncased.pkl"
    
 
     bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="bert_base")

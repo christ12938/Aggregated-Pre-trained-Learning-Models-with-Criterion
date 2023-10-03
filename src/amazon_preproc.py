@@ -1,19 +1,20 @@
 import pandas as pd
-from utils import create_vocab_info_df
+from utils import create_vocab_info_df, create_folder
+from tqdm import tqdm
 
 
 class AmazonPreprocess:
-    def __init__(self, amazon_data_path: str, id_prefix: str):
+    def __init__(self, amazon_data_path: str, id_prefix: str, sample=1):
         self.data = []
         self.vocab_info_df = None
         self.id_prefix = id_prefix
-        open_file(amazon_data_path)
+        self.sample = sample
+        self.open_file(amazon_data_path)
 
 
-    @staticmethod
-    def open_file(amazon_data_path: str):
+    def open_file(self, amazon_data_path: str):
         with open(amazon_data_path, 'r', encoding='utf-8') as f:
-            for line in f:
+            for line in tqdm(f, desc="Processing Amazon Data"):
                 self.data.append(line.strip())
 
     def preprocess(self):
@@ -22,5 +23,6 @@ class AmazonPreprocess:
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving Amazon Vocab Info ... ")
-        self.vocab_info_df.to_pickle(save_path)
+        create_folder(path=save_path)
+        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
 

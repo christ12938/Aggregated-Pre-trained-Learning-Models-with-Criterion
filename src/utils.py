@@ -1,3 +1,4 @@
+import os
 import regex as re
 from tqdm import tqdm
 import pandas as pd
@@ -18,3 +19,9 @@ def create_vocab_info_df(sentences_list: list, id_prefix: str):
             vocab_info_dict[vocab].add(f"{id_prefix}_{idx}")
     vocab_info_df = pd.DataFrame(list(vocab_info_dict.items()), columns=['vocab', 'id'])
     return vocab_info_df
+
+
+def create_folder(path: str):
+    parent_dir = os.path.dirname(path)
+    if not os.path.exists(parent_dir):
+        os.makedirs(parent_dir)

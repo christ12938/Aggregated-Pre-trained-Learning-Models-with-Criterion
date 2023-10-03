@@ -1,6 +1,6 @@
 import random
 
-from src.embeddings import SeedEmbeddings
+from embeddings import SeedEmbeddings
 
 
 def get_scidocs_seeds():
@@ -83,21 +83,21 @@ def get_merged_seeds(seeds: list):
 
 if __name__ == "__main__":
 
-    scidocs_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_bert_base_uncased.pkl"
-    scidocs_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_scibert_uncased.pkl"
-    scidocs_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/scidocs_seed_tensors_flaubert_uncased.pkl"
+    scidocs_seed_embed_bert_base_save_path = "embeddings/scidocs_seed_tensors_bert_base_uncased.pkl"
+    scidocs_seed_embed_scibert_save_path = "embeddings/scidocs_seed_tensors_scibert_uncased.pkl"
+    scidocs_seed_embed_flaubert_save_path = "embeddings/scidocs_seed_tensors_flaubert_uncased.pkl"
 
-    amazon_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_bert_base_uncased.pkl"
-    amazon_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_scibert_uncased.pkl"
-    amazon_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/amazon_seed_tensors_flaubert_uncased.pkl"
+    amazon_seed_embed_bert_base_save_path = "embeddings/amazon_seed_tensors_bert_base_uncased.pkl"
+    amazon_seed_embed_scibert_save_path = "embeddings/amazon_seed_tensors_scibert_uncased.pkl"
+    amazon_seed_embed_flaubert_save_path = "embeddings/amazon_seed_tensors_flaubert_uncased.pkl"
 
-    french_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_bert_base_uncased.pkl"
-    french_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_scibert_uncased.pkl"
-    french_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/french_seed_tensors_flaubert_uncased.pkl"
+    french_seed_embed_bert_base_save_path = "embeddings/french_seed_tensors_bert_base_uncased.pkl"
+    french_seed_embed_scibert_save_path = "embeddings/french_seed_tensors_scibert_uncased.pkl"
+    french_seed_embed_flaubert_save_path = "embeddings/french_seed_tensors_flaubert_uncased.pkl"
 
-    merged_seed_embed_bert_base_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_bert_base_uncased.pkl"
-    merged_seed_embed_scibert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_scibert_uncased.pkl"
-    merged_seed_embed_flaubert_save_path = "/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/result_data/merged_seed_tensors_flaubert_uncased.pkl"
+    merged_seed_embed_bert_base_save_path = "embeddings/merged_seed_tensors_bert_base_uncased.pkl"
+    merged_seed_embed_scibert_save_path = "embeddings/merged_seed_tensors_scibert_uncased.pkl"
+    merged_seed_embed_flaubert_save_path = "embeddings/merged_seed_tensors_flaubert_uncased.pkl"
     
     merged_seeds = get_scidocs_seeds() + get_amazon_seeds() + get_french_seeds()
 

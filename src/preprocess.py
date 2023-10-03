@@ -1,8 +1,8 @@
 #TODO: Fix packages naming and directories
-import preprocessors.scidos_preproc
-import preprocessors.amazon_preproc
-import preprocessors.french_XLSum_2_0_preproc
-import preprocessors.merged_preproc
+from scidocs_preproc import SciDocsPreprocess
+from amazon_preproc import AmazonPreprocess
+from french_XLSum_2_0_preproc import French_XLSum_2_0_Preprocess
+from merged_preproc import MergedPreprocess
 
 
 if __name__ == '__main__':
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     
     scidocs_vocab_save_path = 'data/scidocs_vocab.pkl'
 
-    scidocs_preproc = SciDocsPreprocess(scidocs_data_1_path, scidocs_data_2_path, scidocs_data_3_path, id_prefix='SCIDOCS')
+    scidocs_preproc = SciDocsPreprocess(scidocs_data_path_1, scidocs_data_path_2, scidocs_data_path_3, id_prefix='SCIDOCS', sample=0.3)
     scidocs_preproc.preprocess()
     scidocs_preproc.save_vocab_info(save_path=scidocs_vocab_save_path)
 
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     
     xlsum_fr_vocab_save_path = 'data/xlsum_fr_vocab.pkl'
 
-    xlsum_fr_preproc = French_XLSum_2_0_Preproccess(xlsum_fr_data_path_1, xlsum_fr_data_path_2, xlsum_data_path_3, id_prefix='XLSUM_FR')
+    xlsum_fr_preproc = French_XLSum_2_0_Preprocess(xlsum_fr_data_path_1, xlsum_fr_data_path_2, xlsum_fr_data_path_3, id_prefix='XLSUM_FR')
     xlsum_fr_preproc.preprocess()
     xlsum_fr_preproc.save_vocab_info(save_path=xlsum_fr_vocab_save_path)
 

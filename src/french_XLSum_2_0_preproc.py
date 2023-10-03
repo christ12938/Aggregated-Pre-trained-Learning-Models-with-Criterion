@@ -1,20 +1,20 @@
 import json
 import pandas as pd
 from tqdm import tqdm
-from utils import clean_sentence, create_vocab_info_df
+from utils import clean_sentence, create_vocab_info_df, create_folder
 
 
 class French_XLSum_2_0_Preprocess():
-    def __init__(self, french_train_path: str, french_test_path: str, french_val_path: str, id_prefix: str):
+    def __init__(self, french_train_path: str, french_test_path: str, french_val_path: str, id_prefix: str, sample=1):
         self.data = []
         self.data_dict = {}
         self.vocab_info_df = None
         self.id_prefix = id_prefix
-        open_file(french_train_path, french_test_path, french_val_path)
+        self.sample = sample
+        self.open_file(french_train_path, french_test_path, french_val_path)
 
 
-    @staticmethod
-    def open_file(french_train_path: str, french_test_path: str, french_val_path: str):
+    def open_file(self, french_train_path: str, french_test_path: str, french_val_path: str):
         
         with open(french_train_path, 'r', encoding='utf-8') as f1:
             for line in f1:
@@ -30,7 +30,7 @@ class French_XLSum_2_0_Preprocess():
 
 
     def preprocess(self):
-        for entry in tqdm(self.data, desc='Preprocessing Data'):
+        for entry in tqdm(self.data, desc='Processing XLSUM FR Data'):
             combined_text = (entry['title'] + ' ' + entry['summary'] + ' ' + entry['text']).lower()
             cleaned_sentence = clean_sentence(sentence=combined_text, regex_rules=r"(?!')[\p{P}\p{S}]")
             if entry['id'] in self.data_dict:
@@ -42,7 +42,8 @@ class French_XLSum_2_0_Preprocess():
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving XLSum FR Vocab Info ... ")
-        self.vocab_info_df.to_pickle(save_path)
+        create_folder(path=save_path)
+        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
 
 
 if __name__ == '__main__': 

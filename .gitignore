@@ -4,3 +4,7 @@ data/
 data_bck/
 garbage/
 scidocs_data/
+embeddings/
+result_data/
+xlsum_fr_data/
+amazon_data/
