@@ -124,16 +124,16 @@ if __name__ == "__main__":
     bert_base_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_bert_base_save_path)
     del bert_base_vocab_embeds
 
-    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="bert_base")
-    bert_base_vocab_embeds.process_vocabs()
-    bert_base_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_bert_base_save_path)
-    del bert_base_vocab_embeds
+    #bert_base_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="bert_base")
+    #bert_base_vocab_embeds.process_vocabs()
+    #bert_base_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_bert_base_save_path)
+    #del bert_base_vocab_embeds
 
-    bert_base_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="bert_base")
-    bert_base_vocab_embeds.process_vocabs()
-    bert_base_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_bert_base_save_path)
-    del bert_base_vocab_embeds
- 
+    #bert_base_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="bert_base")
+    #bert_base_vocab_embeds.process_vocabs()
+    #bert_base_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_bert_base_save_path)
+    #del bert_base_vocab_embeds
+
     bert_base_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="bert_base")
     bert_base_vocab_embeds.process_vocabs()
     bert_base_vocab_embeds.save_vocab_embeddings(save_path=merged_vocab_embed_bert_base_save_path)
@@ -144,15 +144,15 @@ if __name__ == "__main__":
     scibert_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_scibert_save_path)
     del scibert_vocab_embeds
 
-    scibert_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="scibert")
-    scibert_vocab_embeds.process_vocabs()
-    scibert_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_scibert_save_path)
-    del scibert_vocab_embeds
+    #scibert_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="scibert")
+    #scibert_vocab_embeds.process_vocabs()
+    #scibert_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_scibert_save_path)
+    #del scibert_vocab_embeds
 
-    scibert_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="scibert")
-    scibert_vocab_embeds.process_vocabs()
-    scibert_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_scibert_save_path)
-    del scibert_vocab_embeds
+    #scibert_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="scibert")
+    #scibert_vocab_embeds.process_vocabs()
+    #scibert_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_scibert_save_path)
+    #del scibert_vocab_embeds
 
     scibert_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="scibert")
     scibert_vocab_embeds.process_vocabs()
@@ -164,15 +164,15 @@ if __name__ == "__main__":
     flaubert_vocab_embeds.save_vocab_embeddings(save_path=scidocs_vocab_embed_flaubert_save_path)
     del flaubert_vocab_embeds
 
-    flaubert_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="flaubert")
-    flaubert_vocab_embeds.process_vocabs()
-    flaubert_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_flaubert_save_path)
-    del flaubert_vocab_embeds
+    #flaubert_vocab_embeds = VocabEmbeddings(vocab_path=amazon_vocab_path, model_options="flaubert")
+    #flaubert_vocab_embeds.process_vocabs()
+    #flaubert_vocab_embeds.save_vocab_embeddings(save_path=amazon_vocab_embed_flaubert_save_path)
+    #del flaubert_vocab_embeds
 
-    flaubert_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="flaubert")
-    flaubert_vocab_embeds.process_vocabs()
-    flaubert_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_flaubert_save_path)
-    del flaubert_vocab_embeds
+    #flaubert_vocab_embeds = VocabEmbeddings(vocab_path=french_vocab_path, model_options="flaubert")
+    #flaubert_vocab_embeds.process_vocabs()
+    #flaubert_vocab_embeds.save_vocab_embeddings(save_path=french_vocab_embed_flaubert_save_path)
+    #del flaubert_vocab_embeds
 
     flaubert_vocab_embeds = VocabEmbeddings(vocab_path=merged_vocab_path, model_options="flaubert")
     flaubert_vocab_embeds.process_vocabs()

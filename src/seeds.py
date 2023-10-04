@@ -2,7 +2,6 @@ import random
 
 from embeddings import SeedEmbeddings
 
-
 def get_scidocs_seeds():
 
     seeds = [

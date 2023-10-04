@@ -33,15 +33,13 @@ def evaluate_performance(vocab_info_df: pd.DataFrame, result_df: pd.DataFrame, m
 
     for idx, (seed, words) in enumerate(tqdm(result_dict.items(), desc=f"Evaluating Performance for {experiment}")):
         
-        seed_scores = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, words=words, top_k=top_k, total_doc_count=total_doc_count)        
+        result_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, words=words, 
+                                                      top_k=top_k, total_doc_count=total_doc_count, measure=measure)        
           
-        # Aggregation
-        result_scores[idx] = np.mean(seed_scores)
-        
     return np.mean(result_scores)
 
 
-def calculate_score_per_seed(vocab_info_dict: pd.DataFrame, words: list, top_k: int, total_doc_count: int):
+def calculate_score_per_seed(vocab_info_dict: pd.DataFrame, words: list, top_k: int, total_doc_count: int, measure: str):
 
     # Define variables for the function
     words = words[:top_k]
@@ -62,11 +60,12 @@ def calculate_score_per_seed(vocab_info_dict: pd.DataFrame, words: list, top_k: 
         else:
             raise Exception(f"No measure named {measure}")
 
-    return seed_scores
+    # Aggregation
+    return np.mean(seed_scores)
 
 
 if __name__ == '__main__':
-
+    
     # Vocab info paths
     scidocs_vocab_path = "data/scidocs_vocab.pkl"
     amazon_vocab_path = "data/amazon_vocab.pkl"

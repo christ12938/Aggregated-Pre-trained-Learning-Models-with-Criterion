@@ -42,10 +42,10 @@ if __name__ == '__main__':
 
 
     # preprocess merged data
-    merged_sentences = list(scidocs_preproc.data_dict.values()) + amazon_preproc.data + list(xlsum_fr_preproc.data_dict.values()) 
+    merged_vocab_info_df_list = [scidocs_preproc.vocab_info_df, amazon_preproc.vocab_info_df, xlsum_fr_preproc.vocab_info_df]
 
     merged_vocab_save_path = 'data/merged_vocab.pkl'
 
-    merged_preproc = MergedPreprocess(sentences=merged_sentences, id_prefix='MERGED')
+    merged_preproc = MergedPreprocess(vocab_info_df_list=merged_vocab_info_df_list)
     merged_preproc.preprocess()
     merged_preproc.save_vocab_info(save_path=merged_vocab_save_path)

@@ -17,12 +17,13 @@ class AmazonPreprocess:
             for line in tqdm(f, desc="Processing Amazon Data"):
                 self.data.append(line.strip())
 
+
     def preprocess(self):
-        self.vocab_info_df = create_vocab_info_df(sentences_list=self.data, id_prefix=self.id_prefix)
+        self.vocab_info_df = create_vocab_info_df(sentences_list=self.data, id_prefix=self.id_prefix, sample=self.sample)
 
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving Amazon Vocab Info ... ")
         create_folder(path=save_path)
-        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
+        self.vocab_info_df.to_pickle(save_path)
 

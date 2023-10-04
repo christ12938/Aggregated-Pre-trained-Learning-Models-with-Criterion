@@ -37,13 +37,13 @@ class French_XLSum_2_0_Preprocess():
                 self.data_dict[entry['id']] = self.data_dict[entry['id']] + ' ' + cleaned_sentence
             else:
                 self.data_dict[entry['id']] = cleaned_sentence
-        self.vocab_info_df = create_vocab_info_df(sentences_list=list(self.data_dict.values()), id_prefix=self.id_prefix)
+        self.vocab_info_df = create_vocab_info_df(sentences_list=list(self.data_dict.values()), id_prefix=self.id_prefix, sample=self.sample)
 
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving XLSum FR Vocab Info ... ")
         create_folder(path=save_path)
-        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
+        self.vocab_info_df.to_pickle(save_path)
 
 
 if __name__ == '__main__': 

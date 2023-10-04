@@ -53,13 +53,14 @@ class SciDocsPreprocess:
                 self.data_dict[key] = self.data_dict[key] + ' ' + cleaned_sentence
             else:
                 self.data_dict[key] = cleaned_sentence
-        self.vocab_info_df = create_vocab_info_df(sentences_list=list(self.data_dict.values()), id_prefix=self.id_prefix) 
+        
+        self.vocab_info_df = create_vocab_info_df(sentences_list=list(self.data_dict.values()), id_prefix=self.id_prefix, sample=self.sample) 
 
 
     def save_vocab_info(self, save_path: str):
         print("\nSaving Scidocs Vocab Info ... ")
         create_folder(path=save_path)
-        self.vocab_info_df.sample(frac=self.sample).reset_index(drop=True).to_pickle(save_path)
+        self.vocab_info_df.to_pickle(save_path)
 
 
 

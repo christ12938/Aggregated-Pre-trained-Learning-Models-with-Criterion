@@ -1,17 +1,25 @@
 import pandas as pd
-from utils import create_vocab_info_df, create_folder
+from utils import create_folder
 
 
 class MergedPreprocess():
-    def __init__(self, sentences: list, id_prefix):
-        self.sentences = sentences
+    def __init__(self, vocab_info_df_list: list):
+        self.vocab_info_df_list = vocab_info_df_list
         self.vocab_info_df = None
-        self.id_prefix = id_prefix
+
+
+    @staticmethod
+    def __combine_sets(series):
+        combined_set = set()
+        for e in series:
+            combined_set = combined_set.union(e)
+        return combined_set
 
 
     def preprocess(self):
         # Assume sentences are already cleaned
-        self.vocab_info_df = create_vocab_info_df(sentences_list=self.sentences, id_prefix=self.id_prefix)
+        combined_df = pd.concat(self.vocab_info_df_list)
+        self.vocab_info_df = combined_df.groupby('vocab').agg({'id': self.__combine_sets}).reset_index()
 
 
     def save_vocab_info(self, save_path: str):

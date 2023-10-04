@@ -2,7 +2,7 @@ import os
 import regex as re
 from tqdm import tqdm
 import pandas as pd
-
+import random
 
 def clean_sentence(sentence: str, regex_rules: str):
     cleaned_sentence = re.sub(regex_rules, '', sentence)
@@ -10,14 +10,19 @@ def clean_sentence(sentence: str, regex_rules: str):
     return cleaned_sentence
 
 
-def create_vocab_info_df(sentences_list: list, id_prefix: str):
+def create_vocab_info_df(sentences_list: list, id_prefix: str, sample: int):
     vocab_info_dict = {}
     for idx, sentence in enumerate(tqdm(sentences_list, desc="Creating Vocabulary")):
         clean_vocabs = list(filter(None, sentence.split()))
         for vocab in clean_vocabs:
+            #TODO: Change this
+            if len(vocab) > 510:
+                continue
+            # ==================
             vocab_info_dict.setdefault(vocab, set())
             vocab_info_dict[vocab].add(f"{id_prefix}_{idx}")
     vocab_info_df = pd.DataFrame(list(vocab_info_dict.items()), columns=['vocab', 'id'])
+    vocab_info_df = vocab_info_df.sample(frac=sample).reset_index(drop=True)
     return vocab_info_df
 
 
