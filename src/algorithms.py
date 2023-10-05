@@ -3,8 +3,11 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 from utils import create_folder
+from metrics import calculate_score_per_seed
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from torch.nn.functional import cosine_similarity
+
+
 
 device = torch.device(f'cuda:{torch.cuda.current_device()}') if torch.cuda.is_available() else 'cpu'
 
@@ -23,12 +26,12 @@ class CosineScore:
                                  list(self.seed_embeddings_df.loc[:, "embedding"])]
         self.result_dict = {key: [] for key in seeds_words}
        
-       for row in tqdm(vocab_embeddings_dict, desc="Calculating Cosine Scores for Vocabs"):
+        for row in tqdm(vocab_embeddings_dict, desc="Calculating Cosine Scores for Vocabs"):
             vocab = row['vocab']
             vocab_embedding = torch.from_numpy(row['embedding']).to(device)
            
             # calculate cosine scores
-            cosine_scores = torch.Tensor([cosine_similarity(seed_embedding, vocab_embeddings) for seed_embedding in seeds_embeddings_list])
+            cosine_scores = torch.Tensor([cosine_similarity(seed_embedding, vocab_embedding) for seed_embedding in seeds_embeddings_list])
             max_cosine_score = torch.max(cosine_scores)
             result_index = torch.argmax(cosine_scores)
             # append data to result
@@ -55,10 +58,10 @@ class CombineCriteria:
         self.vocab_info_df = None
         self.categorized_words_dicts = None
         self.result_dict = None
-        open_files(vocab_info_path=vocab_info_path, categorized_words_paths=categorized_words_paths)
+        self.open_files(vocab_info_path=vocab_info_path, categorized_words_paths=categorized_words_paths)
     
 
-    def open_files(self, vocab_info_path: str, categorized_words_paths: list, top_k: int):
+    def open_files(self, vocab_info_path: str, categorized_words_paths: list):
         self.vocab_info_df = pd.read_pickle(vocab_info_path)
         self.categorized_words_dicts = [pd.read_pickle(path).set_index('seed')['words'].to_dict() for path in categorized_words_paths] 
         
@@ -72,7 +75,7 @@ class CombineCriteria:
         self.result_dict = {}
 
         for seed in tqdm(seeds, desc=f"Calculating Highest {top_k} {criteria} for Each Seed"):
-            seed_scores = np.zeroes(len(self.catgorized_words_dicts))
+            seed_scores = np.zeros(len(self.categorized_words_dicts))
             for idx, result in enumerate(self.categorized_words_dicts):
                 seed_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, words=result[seed], 
                                                             top_k=top_k, total_doc_count=total_doc_count, measure=self.criteria)
@@ -149,77 +152,76 @@ if __name__ == "__main__":
     scidocs_max_cosine = CosineScore(vocab_embeddings_path=scidocs_vocab_embed_bert_base_save_path, 
                                      seed_embeddings_path=scidocs_seed_embed_bert_base_save_path)
     scidocs_max_cosine.process_vocab_embeddings()
-    scidocs_max_cosine.save_result(save_path=scidocs_bert_base_result_path)
+    scidocs_max_cosine.save_result(save_path=scidocs_bert_base_result_save_path)
     del scidocs_max_cosine
-
 
     scidocs_max_cosine = CosineScore(vocab_embeddings_path=scidocs_vocab_embed_scibert_save_path, 
                                      seed_embeddings_path=scidocs_seed_embed_scibert_save_path)
     scidocs_max_cosine.process_vocab_embeddings()
-    scidocs_max_cosine.save_result(save_path=scidocs_scibert_result_path)
+    scidocs_max_cosine.save_result(save_path=scidocs_scibert_result_save_path)
     del scidocs_max_cosine
     
     scidocs_max_cosine = CosineScore(vocab_embeddings_path=scidocs_vocab_embed_flaubert_save_path, 
                                      seed_embeddings_path=scidocs_seed_embed_flaubert_save_path)
     scidocs_max_cosine.process_vocab_embeddings()
-    scidocs_max_cosine.save_result(save_path=scidocs_flaubert_result_path)
+    scidocs_max_cosine.save_result(save_path=scidocs_flaubert_result_save_path)
     del scidocs_max_cosine
     
     # Amazon
     amazon_max_cosine = CosineScore(vocab_embeddings_path=amazon_vocab_embed_bert_base_save_path, 
                                     seed_embeddings_path=amazon_seed_embed_bert_base_save_path)
     amazon_max_cosine.process_vocab_embeddings()
-    amazon_max_cosine.save_result(save_path=amazon_bert_base_result_path)
+    amazon_max_cosine.save_result(save_path=amazon_bert_base_result_save_path)
     del amazon_max_cosine
 
     amazon_max_cosine = CosineScore(vocab_embeddings_path=amazon_vocab_embed_scibert_save_path, 
                                     seed_embeddings_path=amazon_seed_embed_scibert_save_path)
     amazon_max_cosine.process_vocab_embeddings()
-    amazon_max_cosine.save_result(save_path=amazon_scibert_result_path)
+    amazon_max_cosine.save_result(save_path=amazon_scibert_result_save_path)
     del amazon_max_cosine
 
     amazon_max_cosine = CosineScore(vocab_embeddings_path=amazon_vocab_embed_flaubert_save_path, 
                                     seed_embeddings_path=amazon_seed_embed_flaubert_save_path)
     amazon_max_cosine.process_vocab_embeddings()
-    amazon_max_cosine.save_result(save_path=amazon_flaubert_result_path)
+    amazon_max_cosine.save_result(save_path=amazon_flaubert_result_save_path)
     del amazon_max_cosine
     
     # XLSum FR
     french_max_cosine = CosineScore(vocab_embeddings_path=french_vocab_embed_bert_base_save_path, 
                                     seed_embeddings_path=french_seed_embed_bert_base_save_path)
     french_max_cosine.process_vocab_embeddings()
-    french_max_cosine.save_result(save_path=french_bert_base_result_path)
+    french_max_cosine.save_result(save_path=french_bert_base_result_save_path)
     del french_max_cosine
     
     french_max_cosine = CosineScore(vocab_embeddings_path=french_vocab_embed_scibert_save_path, 
                                     seed_embeddings_path=french_seed_embed_scibert_save_path)
     french_max_cosine.process_vocab_embeddings()
-    french_max_cosine.save_result(save_path=french_scibert_result_path)
+    french_max_cosine.save_result(save_path=french_scibert_result_save_path)
     del french_max_cosine
 
     french_max_cosine = CosineScore(vocab_embeddings_path=french_vocab_embed_flaubert_save_path, 
                                     seed_embeddings_path=french_seed_embed_flaubert_save_path)
     french_max_cosine.process_vocab_embeddings()
-    french_max_cosine.save_result(save_path=french_flaubert_result_path)
+    french_max_cosine.save_result(save_path=french_flaubert_result_save_path)
     del french_max_cosine
 
     # Merged
     merged_max_cosine = CosineScore(vocab_embeddings_path=merged_vocab_embed_bert_base_save_path, 
                                     seed_embeddings_path=merged_seed_embed_bert_base_save_path)
     merged_max_cosine.process_vocab_embeddings()
-    merged_max_cosine.save_result(save_path=merged_bert_base_result_path)
+    merged_max_cosine.save_result(save_path=merged_bert_base_result_save_path)
     del merged_max_cosine
 
     merged_max_cosine = CosineScore(vocab_embeddings_path=merged_vocab_embed_scibert_save_path, 
                                     seed_embeddings_path=merged_seed_embed_scibert_save_path)
     merged_max_cosine.process_vocab_embeddings()
-    merged_max_cosine.save_result(save_path=merged_scibert_result_path)
+    merged_max_cosine.save_result(save_path=merged_scibert_result_save_path)
     del merged_max_cosine
 
     merged_max_cosine = CosineScore(vocab_embeddings_path=merged_vocab_embed_flaubert_save_path, 
                                     seed_embeddings_path=merged_seed_embed_flaubert_save_path)
     merged_max_cosine.process_vocab_embeddings()
-    merged_max_cosine.save_result(save_path=merged_flaubert_result_path)
+    merged_max_cosine.save_result(save_path=merged_flaubert_result_save_path)
     del merged_max_cosine
 
     # Combined NPMI method
@@ -244,34 +246,34 @@ if __name__ == "__main__":
     criteria = 'npmi'
     top_k = 20
 
-    scidocs_combined_npmi = CombineCriteria(vocab_info_dict=scidocs_vocab_path,
+    scidocs_combined_npmi = CombineCriteria(vocab_info_path=scidocs_vocab_path,
                                             categorized_words_paths=scidocs_words_paths, 
                                             criteria=criteria, 
                                             top_k=top_k)
     scidocs_combined_npmi.combine_results()
-    scidocs_combined_npmi.save_results(save_path=scidocs_combined_npmi_result_save_path)
+    scidocs_combined_npmi.save_result(save_path=scidocs_combined_npmi_result_save_path)
     del scidocs_combined_npmi
 
-    amazon_combined_npmi = CombineCriteria(vocab_info_dict=amazon_vocab_path,
+    amazon_combined_npmi = CombineCriteria(vocab_info_path=amazon_vocab_path,
                                             categorized_words_paths=amazon_words_paths,
                                             criteria=criteria, 
                                             top_k=top_k)
     amazon_combined_npmi.combine_results()
-    amazon_combined_npmi.save_results(save_path=amazon_combined_npmi_result_save_path)
+    amazon_combined_npmi.save_result(save_path=amazon_combined_npmi_result_save_path)
     del amazon_combined_npmi
 
-    french_combined_npmi = CombineCriteria(vocab_info_dict=french_vocab_path,
+    french_combined_npmi = CombineCriteria(vocab_info_path=french_vocab_path,
                                             categorized_words_paths=french_words_paths, 
                                             criteria=criteria, 
                                             top_k=top_k)
     french_combined_npmi.combine_results()
-    french_combined_npmi.save_results(save_path=french_combined_npmi_result_save_path)
+    french_combined_npmi.save_result(save_path=french_combined_npmi_result_save_path)
     del french_combined_npmi
 
-    merged_combined_npmi = CombineCriteria(vocab_info_dict=merged_vocab_path,
+    merged_combined_npmi = CombineCriteria(vocab_info_path=merged_vocab_path,
                                             categorized_words_paths=merged_words_paths, 
                                             criteria=criteria, 
                                             top_k=top_k)
     merged_combined_npmi.combine_results()
-    merged_combined_npmi.save_results(save_path=merged_combined_npmi_result_save_path)
+    merged_combined_npmi.save_result(save_path=merged_combined_npmi_result_save_path)
     del merged_combined_npmi

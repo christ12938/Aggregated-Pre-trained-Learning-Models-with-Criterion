@@ -76,24 +76,28 @@ if __name__ == '__main__':
     scidocs_bert_base_result_save_path = "result_data/scidocs_result_bert_base_uncased.pkl"
     scidocs_scibert_result_save_path = "result_data/scidocs_result_scibert_uncased.pkl"
     scidocs_flaubert_result_save_path = "result_data/scidocs_result_flaubert_uncased.pkl"
+    scidocs_combined_npmi_result_save_path = "result_data/scidocs_result_combined_npmi.pkl"
 
     amazon_bert_base_result_save_path = "result_data/amazon_result_bert_base_uncased.pkl"
     amazon_scibert_result_save_path = "result_data/amazon_result_scibert_uncased.pkl"
     amazon_flaubert_result_save_path = "result_data/amazon_result_flaubert_uncased.pkl"
+    amazon_combined_npmi_result_save_path = "result_data/amazon_result_combined_npmi.pkl"
 
     french_bert_base_result_save_path = "result_data/french_result_bert_base_uncased.pkl"
     french_scibert_result_save_path = "result_data/french_result_scibert_uncased.pkl"
     french_flaubert_result_save_path = "result_data/french_result_flaubert_uncased.pkl"
+    french_combined_npmi_result_save_path = "result_data/french_result_combined_npmi.pkl"
 
     merged_bert_base_result_save_path = "result_data/merged_result_bert_base_uncased.pkl"
     merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
     merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
+    merged_combined_npmi_result_save_path = "result_data/merged_result_combined_npmi.pkl"
     
     measure = 'npmi'
     top_k = 10
 
     # Scidocs
-    print(evaluate_performance(vocab_info_df=pd.read_pickle(scidcos_vocab_path),
+    print(evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
                                result_df=pd.read_pickle(scidocs_bert_base_result_save_path), measure=measure,
                                top_k=top_k,
                                experiment='Scidocs Cosine Bert Base'))
@@ -105,6 +109,10 @@ if __name__ == '__main__':
                                result_df=pd.read_pickle(scidocs_flaubert_result_save_path), measure=measure,
                                top_k=top_k,
                                experiment='Scidocs Cosine Flaubert'))
+    print(evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                               result_df=pd.read_pickle(scidocs_combined_npmi_result_save_path), measure=measure,
+                               top_k=top_k,
+                               experiment='Scidocs Combined NPMI'))
     
     # Amazon
     print(evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
@@ -119,6 +127,10 @@ if __name__ == '__main__':
                                result_df=pd.read_pickle(amazon_flaubert_result_save_path), measure=measure, 
                                top_k=top_k,
                                experiment='Amazon Cosine Flaubert'))
+    print(evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                               result_df=pd.read_pickle(amazon_combined_npmi_result_save_path), measure=measure, 
+                               top_k=top_k,
+                               experiment='Amazon Combined NPMI'))
 
     # XLSum FR
     print(evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
@@ -133,6 +145,10 @@ if __name__ == '__main__':
                                result_df=pd.read_pickle(french_flaubert_result_save_path), measure=measure, 
                                top_k=top_k,
                                experiment='XLSum FR Cosine Flaubert'))
+    print(evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                               result_df=pd.read_pickle(french_combined_npmi_result_save_path), measure=measure, 
+                               top_k=top_k,
+                               experiment='XLSum FR Combined NPMI'))
     
     # Merged
     print(evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
@@ -147,3 +163,7 @@ if __name__ == '__main__':
                                result_df=pd.read_pickle(merged_flaubert_result_save_path), measure=measure, 
                                top_k=top_k,
                                experiment='Merged Cosine Flaubert'))
+    print(evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                               result_df=pd.read_pickle(merged_combined_npmi_result_save_path), measure=measure, 
+                               top_k=top_k,
+                               experiment='Merged Combined NPMI'))
