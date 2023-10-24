@@ -1,41 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
-
-
-scidocs_seeds = ['cardiovascular diseases',
-                 'chronic kidney disease',
-                 'chronic respiratory diseases',
-                 'diabetes mellitus',
-                 'digestive diseases',
-                 'hiv/aids',
-                 'sexually transmitted diseases',
-                 'hepatitis',
-                 'mental disorders',
-                 'musculoskeletal disorders',
-                 'neoplasms',
-                 'neurological disorders']
-
-
-amazon_seeds = ['apps for android',
-                'books',
-                'cds and vinyl',
-                'clothing, shoes and jewelry',
-                'electronics',
-                'health and personal care',
-                'home and kitchen',
-                'movies and tv',
-                'sports and outdoors',
-                'video games']
-
-
-xlsum_fr_seeds = ["histoire et révolution", 
-                  "faune et flore", 
-                  "énergies renouvelables", 
-                  "élections municipales",
-                  "littérature contemporaine", 
-                  "écoles élémentaires", 
-                  "pâtisseries françaises", 
-                  "châteaux historiques"]
+from seeds import *
 
 
 def check_vocabs_contain_seeds(seeds: list, vocab_df: pd.DataFrame):
@@ -63,18 +28,17 @@ if __name__ == '__main__':
     # print vocabs df
     vocab_df_1 = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/scidocs_vocab.pkl")
     vocab_df_2 = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/amazon_vocab.pkl")
-    vocab_df_3 = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/xlsum_fr_vocab.pkl")
-    vocab_df_4 = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/merged_vocab.pkl")
+    vocab_df_3 = pd.read_pickle("/home/chris/COMP4951-Thesis-Out-of-Vocab-Seed-Mining/src/data/french_news_vocab.pkl")
 
-    seeds_1 = scidocs_seeds
-    seeds_2 = amazon_seeds
-    seeds_3 = xlsum_fr_seeds
+    seeds_1 = get_scidocs_seeds()
+    seeds_2 = get_amazon_seeds()
+    seeds_3 = get_french_seeds()
+
 
     print(vocab_df_1)
     print(vocab_df_2)
     print(vocab_df_3)
-    print(vocab_df_4)
-    
+
     check_vocabs_contain_seeds(seeds=seeds_1, vocab_df=vocab_df_1)
     check_vocabs_has_seeds(seeds=seeds_1, vocab_df=vocab_df_1)
 

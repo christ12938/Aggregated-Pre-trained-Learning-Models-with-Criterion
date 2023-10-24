@@ -8,3 +8,10 @@ embeddings/
 result_data/
 xlsum_fr_data/
 amazon_data/
+news_fr_data/
+opus_fr_data/
+seetopic_scidocs_data/
+decision_data/
+embeddings_bck/
+output.txt
+output_*.log

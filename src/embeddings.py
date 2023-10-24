@@ -8,14 +8,14 @@ from transformers import AutoTokenizer, AutoModel
 
 device = torch.device(f'cuda:{torch.cuda.current_device()}') if torch.cuda.is_available() else 'cpu'
 
-bert_base_tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-bert_base_model = AutoModel.from_pretrained('bert-base-uncased').to(device)
+bert_base_tokenizer = AutoTokenizer.from_pretrained('bert-large-uncased')
+bert_base_model = AutoModel.from_pretrained('bert-large-uncased').to(device)
 
 scibert_tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
 scibert_model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased').to(device)
 
-flaubert_tokenizer = AutoTokenizer.from_pretrained('flaubert/flaubert_base_uncased')
-flaubert_model = AutoModel.from_pretrained('flaubert/flaubert_base_uncased').to(device)
+flaubert_tokenizer = AutoTokenizer.from_pretrained('flaubert/flaubert_large_cased')
+flaubert_model = AutoModel.from_pretrained('flaubert/flaubert_large_cased').to(device)
 
 #legalbert_tokenizer = AutoTokenizer.from_pretrained("nlpaueb/legal-bert-base-uncased")
 #legalbert_model = AutoModel.from_pretrained("nlpaueb/legal-bert-base-uncased").to(device)
@@ -98,25 +98,25 @@ if __name__ == "__main__":
 
     scidocs_vocab_path = "data/scidocs_vocab.pkl"
     amazon_vocab_path = "data/amazon_vocab.pkl"
-    french_vocab_path = "data/xlsum_fr_vocab.pkl"
+    french_vocab_path = "data/french_news_vocab.pkl"
     merged_vocab_path = "data/merged_vocab.pkl"
     
 
-    scidocs_vocab_embed_bert_base_save_path = "embeddings/scidocs_vocab_tensors_bert_base_uncased.pkl"
+    scidocs_vocab_embed_bert_base_save_path = "embeddings/scidocs_vocab_tensors_bert_large_uncased.pkl"
     scidocs_vocab_embed_scibert_save_path = "embeddings/scidocs_vocab_tensors_scibert_uncased.pkl"
-    scidocs_vocab_embed_flaubert_save_path = "embeddings/scidocs_vocab_tensors_flaubert_uncased.pkl"
+    scidocs_vocab_embed_flaubert_save_path = "embeddings/scidocs_vocab_tensors_flaubert_large_uncased.pkl"
 
-    amazon_vocab_embed_bert_base_save_path = "embeddings/amazon_vocab_tensors_bert_base_uncased.pkl"
+    amazon_vocab_embed_bert_base_save_path = "embeddings/amazon_vocab_tensors_bert_large_uncased.pkl"
     amazon_vocab_embed_scibert_save_path = "embeddings/amazon_vocab_tensors_scibert_uncased.pkl"
-    amazon_vocab_embed_flaubert_save_path = "embeddings/amazon_vocab_tensors_flaubert_uncased.pkl"
+    amazon_vocab_embed_flaubert_save_path = "embeddings/amazon_vocab_tensors_flaubert_large_uncased.pkl"
     
-    french_vocab_embed_bert_base_save_path = "embeddings/french_vocab_tensors_bert_base_uncased.pkl"
+    french_vocab_embed_bert_base_save_path = "embeddings/french_vocab_tensors_bert_large_uncased.pkl"
     french_vocab_embed_scibert_save_path = "embeddings/french_vocab_tensors_scibert_uncased.pkl"
-    french_vocab_embed_flaubert_save_path = "embeddings/french_vocab_tensors_flaubert_uncased.pkl"
+    french_vocab_embed_flaubert_save_path = "embeddings/french_vocab_tensors_flaubert_large_uncased.pkl"
     
-    merged_vocab_embed_bert_base_save_path = "embeddings/merged_vocab_tensors_bert_base_uncased.pkl"
+    merged_vocab_embed_bert_base_save_path = "embeddings/merged_vocab_tensors_bert_large_uncased.pkl"
     merged_vocab_embed_scibert_save_path = "embeddings/merged_vocab_tensors_scibert_uncased.pkl"
-    merged_vocab_embed_flaubert_save_path = "embeddings/merged_vocab_tensors_flaubert_uncased.pkl"
+    merged_vocab_embed_flaubert_save_path = "embeddings/merged_vocab_tensors_flaubert_large_uncased.pkl"
    
 
     bert_base_vocab_embeds = VocabEmbeddings(vocab_path=scidocs_vocab_path, model_options="bert_base")
