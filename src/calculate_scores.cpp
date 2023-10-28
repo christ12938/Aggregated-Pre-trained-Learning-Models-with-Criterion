@@ -5,11 +5,40 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <cmath>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <mutex>
 
 
 using JSON = nlohmann::json;
 using SCORE = std::vector<std::pair<std::string, double>>;
-using RESULT = std::vector<std::tuple<std::string, double, SCORE, double, SCORE, double, SCORE, double, SCORE>>;
+using RESULT = std::vector<
+    std::tuple<
+        std::string,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE,
+        double, SCORE
+    >
+>;
+
+/* For locking Results */
+std::mutex mtx;
+
+/* For Progress Checking */
+std::atomic<int> progress(0);
 
 
 auto comparePairs(const std::pair<std::string, double> &a, const std::pair<std::string, double> &b) {
@@ -18,13 +47,13 @@ auto comparePairs(const std::pair<std::string, double> &a, const std::pair<std::
 
 
 auto countTotalVocabs(const JSON &vocabEntries){
-    std::cout << "Total Number of Vocabularies" << vocabEntries.size() << std::endl;
+    std::cout << "Total Number of Vocabularies: " << vocabEntries.size() << std::endl;
     return static_cast<double>(vocabEntries.size());
 }
 
 
 auto countTotalDocs(const JSON &docEntries){
-    std::cout << "Total Number of Documents" << docEntries.size() << std::endl;
+    std::cout << "Total Number of Documents: " << docEntries.size() << std::endl;
     return static_cast<double>(docEntries.size());
 } 
 
@@ -34,7 +63,7 @@ auto countTotalWords(const JSON &vocabEntries){
     for (const auto &[key, value] : vocabEntries.items()) {
         wordCounts += static_cast<double>(value["count"]);
     }
-    std::cout << "Total Number of Words" << wordCounts << std::endl;
+    std::cout << "Total Number of Words: " << wordCounts << std::endl;
     return wordCounts;
 }
 
@@ -71,103 +100,284 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
                const double &totalVocabCount, const double &totalDocCount, 
                const double &totalWordCount){
 
-    /* TODO: Laplce coeficient */
-    const auto c_i = static_cast<double>(firstLevel["id"].size());
-    const auto c_i_laplace = static_cast<double>(firstLevel["id"].size()) + 0.01;
-    const auto c_j = static_cast<double>(secondLevel["id"].size());
-    const auto c_j_laplace = static_cast<double>(secondLevel["id"].size()) + 0.01; 
-
     /* Get Intersecting Keys */
     const auto intersectingKeys = getIntersectingKeys(firstLevel["id"], secondLevel["id"]);
-    size_t c_ij = intersectingKeys.size();
 
     /* Declare Scores */
-    double npmi = -1.0;
-    double wanpmi_alpha_1, wanpmi_alpha_2, wanpmi_alpha_3 = 0.0;
+    double pmi = 0.0, pmi_laplace, pmi_smoothing_laplace;
+    double ppmi = 0.0, ppmi_delta = 0.0, ppmi_laplace;
+    double npmi = -1.0, npmi_laplace;
+    double wapmi_alpha_1_laplace, wapmi_alpha_1_smoothing_laplace;
+    double wapmi_alpha_2_laplace, wapmi_alpha_2_smoothing_laplace;
+    double wapmi_alpha_3_laplace, wapmi_alpha_3_smoothing_laplace;
+    double wappmi_alpha_1 = 0.0, wappmi_alpha_1_delta = 0.0, wappmi_alpha_1_laplace;
+    double wappmi_alpha_2 = 0.0, wappmi_alpha_2_delta = 0.0, wappmi_alpha_2_laplace;
+    double wappmi_alpha_3 = 0.0, wappmi_alpha_3_delta = 0.0, wappmi_alpha_3_laplace;
 
-    if (c_ij != 0){
-        /* Calculate Simple NPMI and WANPMI */
+    /* Laplace Smoothing */ 
+    const double c_i_laplace = static_cast<double>(firstLevel["id"].size()) + 0.01;
+    const double c_j_laplace = static_cast<double>(secondLevel["id"].size()) + 0.01;
+    const double c_ij_laplace = static_cast<double>(intersectingKeys.size()) + 0.01;
+
+    const double p_i_laplace = c_i_laplace / totalDocCount;
+    const double p_j_laplace = c_j_laplace / totalDocCount;
+    const double p_ij_laplace = c_ij_laplace / totalDocCount;
+   
+    /* Delta */
+    double delta;
+
+    if (intersectingKeys.size()) {
+        /* Declare frequencies */ 
+        const double c_i = static_cast<double>(firstLevel["id"].size());
+        const double c_j = static_cast<double>(secondLevel["id"].size());
+        const double c_ij = static_cast<double>(intersectingKeys.size());
+
         const double p_i = c_i / totalDocCount;
         const double p_j = c_j / totalDocCount;
-        const double p_ij = static_cast<double>(c_ij) / totalDocCount;
-        npmi = -(std::log(p_ij / (p_i * p_j)) / std::log(p_ij));
-        wanpmi_alpha_1 = p_ij * npmi;
+        const double p_ij = c_ij / totalDocCount;
 
-        /* Calculate Alphas */
-        const double alpha_2 = 1 / (totalWordCount - static_cast<double>(secondLevel["count"]));
-        const double alpha_3 = 1 / (static_cast<double>(secondLevel["count"]) * totalVocabCount);
+        /* Calculate Delta */
+        const double minFreq = std::min(c_i, c_j); 
+        delta = (c_ij / (c_ij + 1)) * (minFreq / (minFreq + 1));
 
-        /* Calculate P(wt | di) */
-        double p_w_i_d_i = 0.0;
-        for (const auto &intersectKey : intersectingKeys) { 
-            const double w_i_d_i_count = firstLevel["id"][intersectKey];
-            const double d_i_length = docEntries[intersectKey];
-            p_w_i_d_i += (w_i_d_i_count / d_i_length);
-        }
-
-        /* Calculate WANPMI Alpha 2 and Alpha 3 */
-        wanpmi_alpha_2 = alpha_2 * p_w_i_d_i * npmi;
-        wanpmi_alpha_3 = alpha_3 * p_w_i_d_i * npmi;
+        /* Calculate simple scores */
+        pmi = log2(p_ij / (p_i * p_j)); 
+        ppmi = std::max(pmi, 0.0);
+        ppmi_delta = delta * ppmi;
+        npmi = -(pmi / log2(p_ij));
+        wappmi_alpha_1 = p_ij * ppmi;
+        wappmi_alpha_1_delta = delta * wappmi_alpha_1;
     }
-    return std::make_tuple(npmi, wanpmi_alpha_1, wanpmi_alpha_2, wanpmi_alpha_3);
+
+
+    /* Calculate laplace simple scores */ 
+    pmi_laplace = log2(p_ij_laplace / (p_i_laplace * p_j_laplace)); 
+    pmi_smoothing_laplace = log2((p_ij_laplace * p_ij_laplace * p_ij_laplace) / (p_i_laplace * p_j_laplace));
+    ppmi_laplace = std::max(pmi_laplace, 0.0);
+    npmi_laplace = -(pmi_laplace / log2(p_ij_laplace));
+    wapmi_smoothing_laplace = p_ij_laplace * pmi_smoothing;
+    wappmi_alpha_1_laplace = p_ij_laplace * ppmi_laplace;
+
+    /* Calculate Alphas */
+    const double alpha_2 = 1 / (totalWordCount - static_cast<double>(firstLevel["count"]));
+    const double alpha_3 = 1 / (static_cast<double>(secondLevel["count"]) * totalVocabCount);
+
+    /* Calculate P(wt | di) */
+    double p_w_i_d_i = 0.0, p_w_i_d_i_laplace = 0.0;
+    for (const auto &intersectKey : intersectingKeys) { 
+        const double w_i_d_i_count = static_cast<double>(firstLevel["id"][intersectKey]);
+        const double w_i_d_i_count_laplace = static_cast<double>(firstLevel["id"][intersectKey]) + 0.01;
+        const double d_i_length = docEntries[intersectKey];
+        p_w_i_d_i += (w_i_d_i_count / d_i_length);
+        p_w_i_d_i_laplace += (w_i_d_i_count_laplace / d_i_length);
+    }
+
+    /* Calculate WANPMI Alpha 2 and Alpha 3 */
+    if (intersectingKeys.size()) {
+        wappmi_alpha_2 = alpha_2 * p_w_i_d_i * ppmi;
+        wappmi_alpha_3 = alpha_3 * p_w_i_d_i * ppmi;
+        wappmi_alpha_2_delta = alpha_2 * p_w_i_d_i * ppmi_delta;
+        wappmi_alpha_3_delta = alpha_3 * p_w_i_d_i * ppmi_delta;
+    }
+
+    wappmi_alpha_2_laplace = alpha_2 * p_w_i_d_i_laplace * ppmi_laplace;
+    wappmi_alpha_3_laplace = alpha_3 * p_w_i_d_i_laplace * ppmi_laplace;
+
+    return std::make_tuple(pmi_laplace, pmi_smoothing_laplace,
+                           ppmi, ppmi_delta, ppmi_laplace, 
+                           npmi, npmi_laplace,
+                           wapmi_alpha_1_laplace, wapmi_alpha_2_laplace, wapmi_alpha_3_laplace,
+                           wapmi_alpha_1_smoothing_laplace, wapmi_alpha_2_smoothing_laplace, wapmi_alpha_3_smoothing_laplace,
+                           wappmi_alpha_1, wappmi_alpha_2, wappmi_alpha_3,
+                           wappmi_alpha_1_delta, wappmi_alpha_2_delta, wappmi_alpha_3_delta,
+                           wappmi_alpha_1_laplace, wappmi_alpha_2_laplace, wappmi_alpha_3_laplace);
 }
 
 
-auto procData(const JSON &vocabEntries, const JSON &docEntries, const int &topK){
-    const auto totalVocabCount = countTotalVocabs(vocabEntries);
-    const auto totalDocCount = countTotalDocs(docEntries);
-    const auto totalWordCount = countTotalWords(vocabEntries);
-    RESULT results;
-    auto progress = 1;
+void processBatch(const int start, const int end, RESULT &results, const JSON &vocabEntries, 
+                  const JSON &docEntries, const double totalVocabCount, const double totalDocCount, 
+                  const double totalWordCount, const int topK) {
 
-    /* Loop through W_i */ 
-    for (const auto &[firstLevelVocab, firstLevelValue] : vocabEntries.items()){
-        std::cout << "\rProgress: " << progress << "/" << vocabEntries.size() << std::flush;
+    /* Loop through W_i */
+    auto startIt = vocabEntries.begin();
+    std::advance(startIt, start);
 
-        SCORE npmi_scores, wanpmi_alpha_1_scores, wanpmi_alpha_2_scores, wanpmi_alpha_3_scores;
+    auto endIt = vocabEntries.begin();
+    std::advance(endIt, end);
+
+    for (auto it = startIt; it != endIt; it++) { 
+
+        const auto &firstLevelVocab = it.key();
+        const auto &firstLevelValue = it.value();
+        SCORE pmi_laplace_scores,
+              ppmi_scores,
+              ppmi_delta_scores,
+              ppmi_laplace_scores,
+              npmi_scores,
+              npmi_laplace_scores,
+              wappmi_alpha_1_scores,
+              wappmi_alpha_2_scores,
+              wappmi_alpha_3_scores,
+              wappmi_alpha_1_delta_scores,
+              wappmi_alpha_2_delta_scores,
+              wappmi_alpha_3_delta_scores,
+              wappmi_alpha_1_laplace_scores,
+              wappmi_alpha_2_laplace_scores,
+              wappmi_alpha_3_laplace_scores;
+
+        std::vector<SCORE> scoresVector;
 
         /* Loop through W_j */
         for (const auto &[secondLevelVocab, secondLevelValue] : vocabEntries.items()){
             /* Skip same word */
             if (&firstLevelValue != &secondLevelValue){
-                const auto &[npmi_score, 
-                             wanpmi_alpha_1_score, 
-                             wanpmi_alpha_2_score, 
-                             wanpmi_alpha_3_score] 
-                                 = calScores(firstLevelValue, secondLevelValue, docEntries, 
-                                             totalVocabCount, totalDocCount, totalWordCount);
+                const auto &calculatedScores = calScores(firstLevelValue, secondLevelValue, docEntries, 
+                                               totalVocabCount, totalDocCount, totalWordCount);
+               
+                for (int i = 0; i < calculatedScores.size(); i++) {
+                    scoresVector.emplace_back(secondLevelVocab, calculatedScores[i]); 
+                }
+
+                pmi_laplace_scores.emplace_back(secondLevelVocab, pmi_laplace_score);
+                ppmi_scores.emplace_back(secondLevelVocab, ppmi_score);
+                ppmi_delta_scores.emplace_back(secondLevelVocab, ppmi_delta_score);
+                ppmi_laplace_scores.emplace_back(secondLevelVocab, ppmi_laplace_score);
                 npmi_scores.emplace_back(secondLevelVocab, npmi_score);
-                wanpmi_alpha_1_scores.emplace_back(secondLevelVocab, wanpmi_alpha_1_score);
-                wanpmi_alpha_2_scores.emplace_back(secondLevelVocab, wanpmi_alpha_2_score);
-                wanpmi_alpha_3_scores.emplace_back(secondLevelVocab, wanpmi_alpha_3_score);
+                npmi_laplace_scores.emplace_back(secondLevelVocab, npmi_laplace_score);
+                wappmi_alpha_1_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_score);
+                wappmi_alpha_2_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_score);
+                wappmi_alpha_3_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_score);
+                wappmi_alpha_1_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_delta_score);
+                wappmi_alpha_2_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_delta_score);
+                wappmi_alpha_3_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_delta_score);
+                wappmi_alpha_1_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_laplace_score);
+                wappmi_alpha_2_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_laplace_score);
+                wappmi_alpha_3_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_laplace_score);
             }
         }
 
         /* Sort the words */
+        std::sort(pmi_laplace_scores.begin(), pmi_laplace_scores.end(), comparePairs);
+        std::sort(ppmi_scores.begin(), ppmi_scores.end(), comparePairs);
+        std::sort(ppmi_delta_scores.begin(), ppmi_delta_scores.end(), comparePairs);
+        std::sort(ppmi_laplace_scores.begin(), ppmi_laplace_scores.end(), comparePairs);
         std::sort(npmi_scores.begin(), npmi_scores.end(), comparePairs);
-        std::sort(wanpmi_alpha_1_scores.begin(), wanpmi_alpha_1_scores.end(), comparePairs);
-        std::sort(wanpmi_alpha_2_scores.begin(), wanpmi_alpha_2_scores.end(), comparePairs);
-        std::sort(wanpmi_alpha_3_scores.begin(), wanpmi_alpha_3_scores.end(), comparePairs);
-       
+        std::sort(npmi_laplace_scores.begin(), npmi_laplace_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_1_scores.begin(), wappmi_alpha_1_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_2_scores.begin(), wappmi_alpha_2_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_3_scores.begin(), wappmi_alpha_3_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_1_delta_scores.begin(), wappmi_alpha_1_delta_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_2_delta_scores.begin(), wappmi_alpha_2_delta_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_3_delta_scores.begin(), wappmi_alpha_3_delta_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.end(), comparePairs);
+        std::sort(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.end(), comparePairs);
+
         /* Get Top K Words */ 
+        const SCORE pmi_laplace_firstK(pmi_laplace_scores.begin(), pmi_laplace_scores.begin() + topK);
+        const SCORE ppmi_firstK(ppmi_scores.begin(), ppmi_scores.begin() + topK);
+        const SCORE ppmi_delta_firstK(ppmi_delta_scores.begin(), ppmi_delta_scores.begin() + topK);
+        const SCORE ppmi_laplace_firstK(ppmi_laplace_scores.begin(), ppmi_laplace_scores.begin() + topK);
         const SCORE npmi_firstK(npmi_scores.begin(), npmi_scores.begin() + topK);
-        const SCORE wanpmi_alpha_1_firstK(wanpmi_alpha_1_scores.begin(), wanpmi_alpha_1_scores.begin() + topK);
-        const SCORE wanpmi_alpha_2_firstK(wanpmi_alpha_2_scores.begin(), wanpmi_alpha_2_scores.begin() + topK);
-        const SCORE wanpmi_alpha_3_firstK(wanpmi_alpha_3_scores.begin(), wanpmi_alpha_3_scores.begin() + topK);
+        const SCORE npmi_laplace_firstK(npmi_laplace_scores.begin(), npmi_laplace_scores.begin() + topK);
+        const SCORE wappmi_alpha_1_firstK(wappmi_alpha_1_scores.begin(), wappmi_alpha_1_scores.begin() + topK);
+        const SCORE wappmi_alpha_2_firstK(wappmi_alpha_2_scores.begin(), wappmi_alpha_2_scores.begin() + topK);
+        const SCORE wappmi_alpha_3_firstK(wappmi_alpha_3_scores.begin(), wappmi_alpha_3_scores.begin() + topK);
+        const SCORE wappmi_alpha_1_delta_firstK(wappmi_alpha_1_delta_scores.begin(), wappmi_alpha_1_delta_scores.begin() + topK);
+        const SCORE wappmi_alpha_2_delta_firstK(wappmi_alpha_2_delta_scores.begin(), wappmi_alpha_2_delta_scores.begin() + topK);
+        const SCORE wappmi_alpha_3_delta_firstK(wappmi_alpha_3_delta_scores.begin(), wappmi_alpha_3_delta_scores.begin() + topK);
+        const SCORE wappmi_alpha_1_laplace_firstK(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.begin() + topK);
+        const SCORE wappmi_alpha_2_laplace_firstK(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.begin() + topK);
+        const SCORE wappmi_alpha_3_laplace_firstK(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.begin() + topK);
 
         /* Calculate total Score */
+        const auto total_pmi_laplace_score = sumScores(pmi_laplace_scores);
+        const auto total_ppmi_score = sumScores(ppmi_scores);
+        const auto total_ppmi_delta_score = sumScores(ppmi_delta_scores);
+        const auto total_ppmi_laplace_score = sumScores(ppmi_laplace_scores);
         const auto total_npmi_score = sumScores(npmi_scores);
-        const auto total_wanpmi_alpha_1_score = sumScores(wanpmi_alpha_1_scores);
-        const auto total_wanpmi_alpha_2_score = sumScores(wanpmi_alpha_2_scores);
-        const auto total_wanpmi_alpha_3_score = sumScores(wanpmi_alpha_3_scores);
+        const auto total_npmi_laplace_score = sumScores(npmi_laplace_scores);
+        const auto total_wappmi_alpha_1_score = sumScores(wappmi_alpha_1_scores);
+        const auto total_wappmi_alpha_2_score = sumScores(wappmi_alpha_2_scores);
+        const auto total_wappmi_alpha_3_score = sumScores(wappmi_alpha_3_scores);
+        const auto total_wappmi_alpha_1_delta_score = sumScores(wappmi_alpha_1_delta_scores);
+        const auto total_wappmi_alpha_2_delta_score = sumScores(wappmi_alpha_2_delta_scores);
+        const auto total_wappmi_alpha_3_delta_score = sumScores(wappmi_alpha_3_delta_scores);
+        const auto total_wappmi_alpha_1_laplace_score = sumScores(wappmi_alpha_1_laplace_scores);
+        const auto total_wappmi_alpha_2_laplace_score = sumScores(wappmi_alpha_2_laplace_scores);
+        const auto total_wappmi_alpha_3_laplace_score = sumScores(wappmi_alpha_3_laplace_scores);
 
         /* Append Results */
-        results.emplace_back(firstLevelVocab, total_npmi_score, npmi_firstK, 
-                             total_wanpmi_alpha_1_score, wanpmi_alpha_3_firstK, 
-                             total_wanpmi_alpha_2_score, wanpmi_alpha_2_firstK, 
-                             total_wanpmi_alpha_3_score, wanpmi_alpha_3_firstK);
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            results.emplace_back(firstLevelVocab,
+                                 total_pmi_laplace_score, pmi_laplace_firstK,
+                                 total_ppmi_score, ppmi_firstK,
+                                 total_ppmi_delta_score, ppmi_delta_firstK,
+                                 total_ppmi_laplace_score, ppmi_laplace_firstK,
+                                 total_npmi_score, npmi_firstK,
+                                 total_npmi_laplace_score, npmi_laplace_firstK,
+                                 total_wappmi_alpha_1_score, wappmi_alpha_1_firstK,
+                                 total_wappmi_alpha_2_score, wappmi_alpha_2_firstK,
+                                 total_wappmi_alpha_3_score, wappmi_alpha_3_firstK,
+                                 total_wappmi_alpha_1_delta_score, wappmi_alpha_1_delta_firstK,
+                                 total_wappmi_alpha_2_delta_score, wappmi_alpha_2_delta_firstK,
+                                 total_wappmi_alpha_3_delta_score, wappmi_alpha_3_delta_firstK,
+                                 total_wappmi_alpha_1_laplace_score, wappmi_alpha_1_laplace_firstK,
+                                 total_wappmi_alpha_2_laplace_score, wappmi_alpha_2_laplace_firstK,
+                                 total_wappmi_alpha_3_laplace_score, wappmi_alpha_3_laplace_firstK);
+        }
         progress++;
     }
+}
+
+
+void monitorProgress(const int totalProgress) {
+    int lastProgress = progress.load(); 
+    while (true) {
+        if (progress.load() != lastProgress) {
+            lastProgress = progress.load();
+            std::cout << "\rProgress: " << lastProgress << "/" << totalProgress << std::flush;
+            if (lastProgress == totalProgress) {
+                std::cout << std::endl << "Finished Calculating Scores" << std::endl;
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}
+
+
+auto processData(const JSON &vocabEntries, const JSON &docEntries, const int &topK, int numThreads){
+    const auto totalVocabCount = countTotalVocabs(vocabEntries);
+    const auto totalDocCount = countTotalDocs(docEntries);
+    const auto totalWordCount = countTotalWords(vocabEntries);
+    RESULT results;
+
+    /* Threads information */
+    if (totalVocabCount < numThreads) {
+        numThreads = totalVocabCount;
+    }
+    const int batchSize = totalVocabCount / numThreads;
+    std::vector<std::thread> threads;
+
+    /* Append worker threads */
+    for (int i = 0; i < numThreads; i++) {
+        int start = i * batchSize;
+        int end = (i == numThreads - 1) ? totalVocabCount : start + batchSize;
+        threads.emplace_back(processBatch, start, end, std::ref(results), std::cref(vocabEntries), 
+                             std::cref(docEntries), totalVocabCount, totalDocCount, totalWordCount, 
+                             topK);
+    }
+
+    /* Append Monitor Thread */
+    threads.emplace_back(monitorProgress, totalVocabCount);
+
+    /* Wait for Batches to Finish */
+    for (auto &thread : threads) {
+        thread.join();
+    }
+
     return results;    
 }
 
@@ -187,14 +397,51 @@ auto createJson(const RESULT &results) {
     for (const auto &firstLevelTuple : results){
         JSON entry;
         entry["vocab"] = std::get<0>(firstLevelTuple);
-        entry["total_npmi_score"] = std::get<1>(firstLevelTuple);
-        entry["npmi_candidate"] = createCandidateJson(std::get<2>(firstLevelTuple));
-        entry["total_wanpmi_alpha_1_score"] = std::get<3>(firstLevelTuple);
-        entry["wanpmi_alpha_1_candidate"] = createCandidateJson(std::get<4>(firstLevelTuple));
-        entry["total_wanpmi_alpha_2_score"] = std::get<5>(firstLevelTuple);
-        entry["wanpmi_alpha_2_candidate"] = createCandidateJson(std::get<6>(firstLevelTuple));
-        entry["total_wanpmi_alpha_3_score"] = std::get<7>(firstLevelTuple);
-        entry["wanpmi_alpha_3_candidate"] = createCandidateJson(std::get<8>(firstLevelTuple));
+
+        entry["total_pmi_laplace_score"] = std::get<1>(firstLevelTuple);
+        entry["pmi_laplace_candidate"] = createCandidateJson(std::get<2>(firstLevelTuple));
+        
+        entry["total_ppmi_score"] = std::get<3>(firstLevelTuple);
+        entry["ppmi_candidate"] = createCandidateJson(std::get<4>(firstLevelTuple));
+        
+        entry["total_ppmi_delta_score"] = std::get<5>(firstLevelTuple);
+        entry["ppmi_delta_candidate"] = createCandidateJson(std::get<6>(firstLevelTuple));
+        
+        entry["total_ppmi_laplace_score"] = std::get<7>(firstLevelTuple);
+        entry["ppmi_laplace_candidate"] = createCandidateJson(std::get<8>(firstLevelTuple));
+        
+        entry["total_npmi_score"] = std::get<9>(firstLevelTuple);
+        entry["npmi_candidate"] = createCandidateJson(std::get<10>(firstLevelTuple));
+        
+        entry["total_npmi_laplace_score"] = std::get<11>(firstLevelTuple);
+        entry["npmi_laplace_candidate"] = createCandidateJson(std::get<12>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_1_score"] = std::get<13>(firstLevelTuple);
+        entry["wappmi_alpha_1_candidate"] = createCandidateJson(std::get<14>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_2_score"] = std::get<15>(firstLevelTuple);
+        entry["wappmi_alpha_2_candidate"] = createCandidateJson(std::get<16>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_3_score"] = std::get<17>(firstLevelTuple);
+        entry["wappmi_alpha_3_candidate"] = createCandidateJson(std::get<18>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_1_delta_score"] = std::get<19>(firstLevelTuple);
+        entry["wappmi_alpha_1_delta_candidate"] = createCandidateJson(std::get<20>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_2_delta_score"] = std::get<21>(firstLevelTuple);
+        entry["wappmi_alpha_2_delta_candidate"] = createCandidateJson(std::get<22>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_3_delta_score"] = std::get<23>(firstLevelTuple);
+        entry["wappmi_alpha_3_delta_candidate"] = createCandidateJson(std::get<24>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_1_laplace_score"] = std::get<25>(firstLevelTuple);
+        entry["wappmi_alpha_1_laplace_candidate"] = createCandidateJson(std::get<26>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_2_laplace_score"] = std::get<27>(firstLevelTuple);
+        entry["wappmi_alpha_2_laplace_candidate"] = createCandidateJson(std::get<28>(firstLevelTuple));
+        
+        entry["total_wappmi_alpha_3_laplace_score"] = std::get<29>(firstLevelTuple);
+        entry["wappmi_alpha_3_laplace_candidate"] = createCandidateJson(std::get<30>(firstLevelTuple));
 
         dataToWrite.emplace_back(std::move(entry));
     }
@@ -219,6 +466,7 @@ auto writeJsonFile(const std::string &outputFilePath, const std::vector<JSON> &d
     // Close the file
     outputFile.close();
 
+    std::cout << "Completed." << std::endl;
     return 0;
 }
 
@@ -227,7 +475,7 @@ auto parse_arguments(int argc, char* argv[]) {
     std::string vocabFilePath;
     std::string docFilePath;
     std::string outputFilePath;
-    int topK;
+    int topK, numThreads;
 
     for (int i = 1; i < argc; i += 2) {
         std::string_view arg(argv[i]);
@@ -240,16 +488,18 @@ auto parse_arguments(int argc, char* argv[]) {
             outputFilePath = argv[i + 1];
         } else if (arg == "-topK") {
             topK = std::stoi(argv[i + 1]);
+        } else if (arg == "-T") {
+            numThreads = std::stoi(argv[i + 1]);
         }
     }
 
-    return std::make_tuple(vocabFilePath, docFilePath, outputFilePath, topK);
+    return std::make_tuple(vocabFilePath, docFilePath, outputFilePath, topK, numThreads);
 }
 
 
 int main(int argc, char* argv[]) {
     /* Get File Arguments  */
-    const auto [vocabFilePath, docFilePath, outputFilePath, topK] = parse_arguments(argc, argv);
+    const auto [vocabFilePath, docFilePath, outputFilePath, topK, numThreads] = parse_arguments(argc, argv);
     
     /* Open Files */
     std::ifstream vocabFile(vocabFilePath); 
@@ -293,7 +543,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* Process Data */
-    const auto results = procData(vocabEntries, docEntries, topK);
+    const auto results = processData(vocabEntries, docEntries, topK, numThreads);
     const auto dataToWrite = createJson(results);
     return writeJsonFile(outputFilePath, dataToWrite);
 }
