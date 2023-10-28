@@ -11,7 +11,6 @@ from torch.nn.functional import cosine_similarity
 device = torch.device(f'cuda:{torch.cuda.current_device()}') if torch.cuda.is_available() else 'cpu'
 
 
-
 class CosineScore:
     def __init__(self, vocab_embeddings_path: str, seed_embeddings_path: str):
         self.vocab_embeddings_df = pd.read_pickle(vocab_embeddings_path)
@@ -48,84 +47,46 @@ class CosineScore:
         pd.DataFrame(list(self.result_dict.items()), columns=['seed', 'words']).to_pickle(save_path)
 
 
-class CombineCosineScore:
-    def __init__(self, vocab_info_path: str, categorized_words_paths: list, model_list: list, criteria: str, top_k: int):
-        if criteria not in CRITERIA_LIST:
-            raise Exception(f"No criteria named {criteria}")
-        self.criteria = criteria
-        self.top_k = top_k
-        self.vocab_info_df = None
-        self.categorized_words_dicts = None
-        self.model_list = model_list
-        self.result_dict = None
-        self.decision_dict = None
-        self.open_files(vocab_info_path=vocab_info_path, categorized_words_paths=categorized_words_paths)
-    
-
-    def open_files(self, vocab_info_path: str, categorized_words_paths: list):
-        self.vocab_info_df = pd.read_pickle(vocab_info_path)
-        self.categorized_words_dicts = [pd.read_pickle(path).set_index('seed')['words'].to_dict() for path in categorized_words_paths] 
-        
-        # Sanity Checks: TODO
-    
-
-    def combine_results(self):
-        vocab_info_dict = self.vocab_info_df.set_index('vocab')['id'].to_dict()
-        total_doc_count = len(set(element for entry in list(self.vocab_info_df.loc[:, 'id']) for element in entry))
-        seeds = list(self.categorized_words_dicts[0].keys())
-        self.result_dict = {}
-        self.decision_dict = {}
-
-        for seed in tqdm(seeds, desc=f"Calculating Highest {top_k} {criteria} for Each Seed"):
-            seed_scores = np.zeros(len(self.categorized_words_dicts))
-            for idx, result in enumerate(self.categorized_words_dicts):
-                seed_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, words=result[seed], 
-                                                            top_k=top_k, total_doc_count=total_doc_count, measure=self.criteria)
-            self.result_dict[seed] = self.categorized_words_dicts[np.argmax(seed_scores)][seed]
-            self.decision_dict[seed] = self.model_list[np.argmax(seed_scores)]
-
-
-    def save_result(self, result_save_path: str, decision_save_path: str):
-        print("Saving Results ...")
-        create_folder(path=result_save_path)
-        create_folder(path=decision_save_path)
-        pd.DataFrame(list(self.result_dict.items()), columns=['seed', 'words']).to_pickle(result_save_path)
-        pd.DataFrame(list(self.decision_dict.items()), columns=['seed', 'decision']).to_pickle(decision_save_path)
-
-
 class CombineCriteria:
-    def __init__(self, vocab_info_path: str, categorized_words_paths: list, model_list: list, criteria: str, top_k: int):
+    def __init__(self, vocab_info_path: str, doc_info_path: str, categorized_words_paths: list, model_list: list, criteria: str, top_k: int):
         if criteria not in CRITERIA_LIST:
             raise Exception(f"No criteria named {criteria}")
         self.criteria = criteria
         self.top_k = top_k
         self.vocab_info_df = None
+        self.doc_info_df = None
         self.categorized_words_dicts = None
         self.model_list = model_list
         self.result_dict = None
         self.decision_dict = None
-        self.open_files(vocab_info_path=vocab_info_path, categorized_words_paths=categorized_words_paths)
+        self.open_files(vocab_info_path=vocab_info_path, doc_info_path=doc_info_path, categorized_words_paths=categorized_words_paths)
     
 
-    def open_files(self, vocab_info_path: str, categorized_words_paths: list):
+    def open_files(self, vocab_info_path: str, doc_info_path: str, categorized_words_paths: list):
         self.vocab_info_df = pd.read_pickle(vocab_info_path)
+        self.doc_info_df = pd.read_pickle(doc_info_path)
         self.categorized_words_dicts = [pd.read_pickle(path).set_index('seed')['words'].to_dict() for path in categorized_words_paths] 
         
         # Sanity Checks: TODO
     
 
     def combine_results(self):
-        vocab_info_dict = self.vocab_info_df.set_index('vocab')['id'].to_dict()
-        total_doc_count = len(set(element for entry in list(self.vocab_info_df.loc[:, 'id']) for element in entry))
+        vocab_info_dict = self.vocab_info_df.set_index('vocab').T.to_dict()
+        doc_info_dict = self.doc_info_df.set_index('id')['length'].to_dict() 
+        total_vocab_count = len(vocab_info_dict)
+        total_doc_count = len(self.doc_info_df['id'])
+        total_word_count = self.vocab_info_df['count'].sum() 
         seeds = list(self.categorized_words_dicts[0].keys())
         self.result_dict = {}
         self.decision_dict = {}
 
-        for seed in tqdm(seeds, desc=f"Calculating Highest {top_k} {criteria} for Each Seed"):
+        for seed in tqdm(seeds, desc=f"Calculating Highest {self.top_k} {self.criteria} for Each Seed"):
             seed_scores = np.zeros(len(self.categorized_words_dicts))
             for idx, result in enumerate(self.categorized_words_dicts):
-                seed_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, words=result[seed], 
-                                                            top_k=top_k, total_doc_count=total_doc_count, measure=self.criteria)
+                seed_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
+                                                            words=result[seed], top_k=top_k, total_vocab_count=total_vocab_count, 
+                                                            total_doc_count=total_doc_count, total_word_count=total_word_count, 
+                                                            measure=self.criteria)
             self.result_dict[seed] = self.categorized_words_dicts[np.argmax(seed_scores)][seed]
             self.decision_dict[seed] = self.model_list[np.argmax(seed_scores)]
 
@@ -136,6 +97,49 @@ class CombineCriteria:
         create_folder(path=decision_save_path)
         pd.DataFrame(list(self.result_dict.items()), columns=['seed', 'words']).to_pickle(result_save_path)
         pd.DataFrame(list(self.decision_dict.items()), columns=['seed', 'decision']).to_pickle(decision_save_path)
+
+
+class CombineScoresEmbeddings:
+    def __init__(self, scores_info_path: str, doc_info_path: str, categorized_words_path: str, criteria: str, top_k: int, discard_subtopic=True):
+        if criteria not in CRITERIA_LIST:
+            raise Exception(f"No criteria named {criteria}")
+        self.criteria = criteria
+        self.top_k = top_k
+        self.scores_info_df = None
+        self.doc_info_df = None
+        self.categorized_words_dict = None
+        self.result_dict = None
+        self.discard_subtopic = discard_subtopic
+        self.open_files(scores_info_path=scores_info_path, doc_info_path=doc_info_path, categorized_words_path=categorized_words_path)
+    
+
+    def open_files(self, scores_info_path: str, doc_info_path: str, categorized_words_path: str):
+        self.scores_info_df = pd.read_pickle(scores_info_path)
+        self.doc_info_df = pd.read_pickle(doc_info_path)
+        self.categorized_words_dict = pd.read_pickle(categorized_words_path).set_index('seed')['words'].to_dict() 
+        
+        # Sanity Checks: TODO
+
+
+    def combine_results(self):
+        total_doc_count = len(self.doc_info_df['id'])
+        scores_info_dict = self.scores_info_df.set_index('vocab').T.to_dict()
+        self.result_dict = {}
+
+        for seed, words in tqdm(self.categorized_words_dict.items(), desc=f"Processing Highest {self.top_k} {self.criteria} for Each Seed"):
+            result_words = []
+            top_k_words = words[:top_k]            
+            for word in top_k_words:
+                if self.discard_subtopic is False:
+                    result_words.append(word)
+                result_words.extend([(key, val) for key, val in scores_info_dict[word][f'{self.criteria}_candidate'].items()])
+            #TODO: How to sort?
+            self.result_dict[seed] = [e[0] if isinstance(e, tuple) else e for e in result_words]
+
+    def save_result(self, result_save_path: str):
+        print("Saving Results ...")
+        create_folder(path=result_save_path)
+        pd.DataFrame(list(self.result_dict.items()), columns=['seed', 'words']).to_pickle(result_save_path)
 
 
 def perform_algorithms():
@@ -180,22 +184,18 @@ def perform_algorithms():
     scidocs_bert_base_result_save_path = "result_data/scidocs_result_bert_base_uncased.pkl"
     scidocs_scibert_result_save_path = "result_data/scidocs_result_scibert_uncased.pkl"
     scidocs_flaubert_result_save_path = "result_data/scidocs_result_flaubert_uncased.pkl"
-    scidocs_combined_npmi_result_save_path = "result_data/scidocs_result_combined_npmi.pkl"
 
     amazon_bert_base_result_save_path = "result_data/amazon_result_bert_base_uncased.pkl"
     amazon_scibert_result_save_path = "result_data/amazon_result_scibert_uncased.pkl"
     amazon_flaubert_result_save_path = "result_data/amazon_result_flaubert_uncased.pkl"
-    amazon_combined_npmi_result_save_path = "result_data/amazon_result_combined_npmi.pkl"
 
     french_bert_base_result_save_path = "result_data/french_result_bert_base_uncased.pkl"
     french_scibert_result_save_path = "result_data/french_result_scibert_uncased.pkl"
     french_flaubert_result_save_path = "result_data/french_result_flaubert_uncased.pkl"
-    french_combined_npmi_result_save_path = "result_data/french_result_combined_npmi.pkl"
 
     merged_bert_base_result_save_path = "result_data/merged_result_bert_base_uncased.pkl"
     merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
     merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
-    merged_combined_npmi_result_save_path = "result_data/merged_result_combined_npmi.pkl"
 
 
     # Scidocs
@@ -280,97 +280,157 @@ if __name__ == "__main__":
 
     #perform_algorithms()
 
+    for criteria in CRITERIA_LIST:
 
-    # Result paths
-    scidocs_bert_base_result_save_path = "result_data/scidocs_result_bert_base_uncased.pkl"
-    scidocs_scibert_result_save_path = "result_data/scidocs_result_scibert_uncased.pkl"
-    scidocs_flaubert_result_save_path = "result_data/scidocs_result_flaubert_uncased.pkl"
-    scidocs_combined_npmi_result_save_path = "result_data/scidocs_result_combined_npmi.pkl"
+        top_k = 10
 
-    amazon_bert_base_result_save_path = "result_data/amazon_result_bert_base_uncased.pkl"
-    amazon_scibert_result_save_path = "result_data/amazon_result_scibert_uncased.pkl"
-    amazon_flaubert_result_save_path = "result_data/amazon_result_flaubert_uncased.pkl"
-    amazon_combined_npmi_result_save_path = "result_data/amazon_result_combined_npmi.pkl"
+        # Result paths
+        scidocs_bert_base_result_save_path = "result_data/scidocs_result_bert_base_uncased.pkl"
+        scidocs_scibert_result_save_path = "result_data/scidocs_result_scibert_uncased.pkl"
+        scidocs_flaubert_result_save_path = "result_data/scidocs_result_flaubert_uncased.pkl"
+        scidocs_combined_result_save_path = f"result_data/scidocs_result_combined_{criteria}.pkl"
 
-    french_bert_base_result_save_path = "result_data/french_result_bert_base_uncased.pkl"
-    french_scibert_result_save_path = "result_data/french_result_scibert_uncased.pkl"
-    french_flaubert_result_save_path = "result_data/french_result_flaubert_uncased.pkl"
-    french_combined_npmi_result_save_path = "result_data/french_result_combined_npmi.pkl"
+        amazon_bert_base_result_save_path = "result_data/amazon_result_bert_base_uncased.pkl"
+        amazon_scibert_result_save_path = "result_data/amazon_result_scibert_uncased.pkl"
+        amazon_flaubert_result_save_path = "result_data/amazon_result_flaubert_uncased.pkl"
+        amazon_combined_result_save_path = f"result_data/amazon_result_combined_{criteria}.pkl"
 
-    merged_bert_base_result_save_path = "result_data/merged_result_bert_base_uncased.pkl"
-    merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
-    merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
-    merged_combined_npmi_result_save_path = "result_data/merged_result_combined_npmi.pkl"
+        french_bert_base_result_save_path = "result_data/french_result_bert_base_uncased.pkl"
+        french_scibert_result_save_path = "result_data/french_result_scibert_uncased.pkl"
+        french_flaubert_result_save_path = "result_data/french_result_flaubert_uncased.pkl"
+        french_combined_result_save_path = f"result_data/french_result_combined_{criteria}.pkl"
 
- 
-    # Combined NPMI method
-    scidocs_vocab_path = "data/scidocs_vocab.pkl"
-    amazon_vocab_path = "data/amazon_vocab.pkl"
-    french_vocab_path = "data/french_news_vocab.pkl"
-    merged_vocab_path = "data/merged_vocab.pkl"
+        merged_bert_base_result_save_path = "result_data/merged_result_bert_base_uncased.pkl"
+        merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
+        merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
+        merged_combined_result_save_path = f"result_data/merged_result_combined_{criteria}.pkl"
 
-    scidocs_words_paths = [scidocs_bert_base_result_save_path, 
-                           scidocs_scibert_result_save_path,
-                           scidocs_flaubert_result_save_path]
-    amazon_words_paths = [amazon_bert_base_result_save_path, 
-                          amazon_scibert_result_save_path, 
-                          amazon_flaubert_result_save_path] 
-    french_words_paths = [french_bert_base_result_save_path,
-                          french_scibert_result_save_path, 
-                          french_flaubert_result_save_path]
-    merged_words_paths = [merged_bert_base_result_save_path, 
-                          merged_scibert_result_save_path, 
-                          merged_flaubert_result_save_path]
+     
+        # Combined NPMI method
+        scidocs_vocab_path = "data/scidocs_vocab.pkl"
+        amazon_vocab_path = "data/amazon_vocab.pkl"
+        french_vocab_path = "data/french_news_vocab.pkl"
+        merged_vocab_path = "data/merged_vocab.pkl"
 
-    model_list = ['Bert Base', 'SciBert', 'FlauBert']
+        scidocs_words_paths = [scidocs_bert_base_result_save_path, 
+                               scidocs_scibert_result_save_path,
+                               scidocs_flaubert_result_save_path]
+        amazon_words_paths = [amazon_bert_base_result_save_path, 
+                              amazon_scibert_result_save_path, 
+                              amazon_flaubert_result_save_path] 
+        french_words_paths = [french_bert_base_result_save_path,
+                              french_scibert_result_save_path, 
+                              french_flaubert_result_save_path]
+        merged_words_paths = [merged_bert_base_result_save_path, 
+                              merged_scibert_result_save_path, 
+                              merged_flaubert_result_save_path]
+
+        model_list = ['Bert Base', 'SciBert', 'FlauBert']
 
 
-    # Decision paths
-    scidocs_combined_npmi_decision_save_path = "decision_data/scidocs_decision_combined_npmi.pkl"
-    amazon_combined_npmi_decision_save_path = "decision_data/amazon_decision_combined_npmi.pkl"
-    french_combined_npmi_decision_save_path = "decision_data/french_decision_combined_npmi.pkl"
-    merged_combined_npmi_decision_save_path = "decision_data/merged_decision_combined_npmi.pkl"
-    
+        # Decision paths
+        scidocs_combined_decision_save_path = f"decision_data/scidocs_decision_combined_{criteria}.pkl"
+        amazon_combined_decision_save_path = f"decision_data/amazon_decision_combined_{criteria}.pkl"
+        french_combined_decision_save_path = f"decision_data/french_decision_combined_{criteria}.pkl"
+        merged_combined_decision_save_path = f"decision_data/merged_decision_combined_{criteria}.pkl"
+        
+        # Doc info paths
+        scidocs_doc_info_path = "data/scidocs_doc.pkl"
+        amazon_doc_info_path = "data/amazon_doc.pkl"
+        french_doc_info_path = "data/french_news_doc.pkl"
+        merged_doc_info_path = "data/merged_doc.pkl"
 
-    criteria = 'wanpmi_smooth'
-    top_k = 10
+        
 
-    scidocs_combined_npmi = CombineCriteria(vocab_info_path=scidocs_vocab_path,
-                                            categorized_words_paths=scidocs_words_paths, 
-                                            model_list=model_list,
-                                            criteria=criteria, 
-                                            top_k=top_k)
-    scidocs_combined_npmi.combine_results()
-    scidocs_combined_npmi.save_result(result_save_path=scidocs_combined_npmi_result_save_path,
-                                      decision_save_path=scidocs_combined_npmi_decision_save_path)
-    del scidocs_combined_npmi
+        scidocs_combined = CombineCriteria(vocab_info_path=scidocs_vocab_path,
+                                                doc_info_path=scidocs_doc_info_path,
+                                                categorized_words_paths=scidocs_words_paths, 
+                                                model_list=model_list,
+                                                criteria=criteria, 
+                                                top_k=top_k)
+        scidocs_combined.combine_results()
+        scidocs_combined.save_result(result_save_path=scidocs_combined_result_save_path,
+                                          decision_save_path=scidocs_combined_decision_save_path)
+        del scidocs_combined
 
-    amazon_combined_npmi = CombineCriteria(vocab_info_path=amazon_vocab_path,
-                                           categorized_words_paths=amazon_words_paths,
-                                           model_list=model_list,
-                                           criteria=criteria, 
-                                           top_k=top_k)
-    amazon_combined_npmi.combine_results()
-    amazon_combined_npmi.save_result(result_save_path=amazon_combined_npmi_result_save_path,
-                                     decision_save_path=amazon_combined_npmi_decision_save_path)
-    del amazon_combined_npmi
+        amazon_combined = CombineCriteria(vocab_info_path=amazon_vocab_path,
+                                               doc_info_path=amazon_doc_info_path,
+                                               categorized_words_paths=amazon_words_paths,
+                                               model_list=model_list,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        amazon_combined.combine_results()
+        amazon_combined.save_result(result_save_path=amazon_combined_result_save_path,
+                                         decision_save_path=amazon_combined_decision_save_path)
+        del amazon_combined
 
-    french_combined_npmi = CombineCriteria(vocab_info_path=french_vocab_path,
-                                           categorized_words_paths=french_words_paths, 
-                                           model_list=model_list,
-                                           criteria=criteria, 
-                                           top_k=top_k)
-    french_combined_npmi.combine_results()
-    french_combined_npmi.save_result(result_save_path=french_combined_npmi_result_save_path,
-                                     decision_save_path=french_combined_npmi_decision_save_path)
-    del french_combined_npmi
+        french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
+                                               doc_info_path=french_doc_info_path,
+                                               categorized_words_paths=french_words_paths, 
+                                               model_list=model_list,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        french_combined.combine_results()
+        french_combined.save_result(result_save_path=french_combined_result_save_path,
+                                         decision_save_path=french_combined_decision_save_path)
+        del french_combined
 
-    merged_combined_npmi = CombineCriteria(vocab_info_path=merged_vocab_path,
-                                           categorized_words_paths=merged_words_paths, 
-                                           model_list=model_list,
-                                           criteria=criteria, 
-                                           top_k=top_k)
-    merged_combined_npmi.combine_results()
-    merged_combined_npmi.save_result(result_save_path=merged_combined_npmi_result_save_path, 
-                                     decision_save_path=merged_combined_npmi_decision_save_path)
-    del merged_combined_npmi
+        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
+                                               doc_info_path=merged_doc_info_path,
+                                               categorized_words_paths=merged_words_paths, 
+                                               model_list=model_list,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        merged_combined.combine_results()
+        merged_combined.save_result(result_save_path=merged_combined_result_save_path, 
+                                         decision_save_path=merged_combined_decision_save_path)
+        del merged_combined
+
+
+        # Combied Scores Embeddings
+        scidocs_scores_info_path = "data/scidocs_scores.pkl"
+        amazon_scores_info_path = "data/amazon_scores.pkl"
+        french_scores_info_path = "data/french_news_scores.pkl"
+        merged_scores_info_path = "data/merged_scores.pkl"
+
+        scidocs_combined_scores_embeds_save_path = f"result_data/scidocs_result_combined_scores_embeds_{criteria}.pkl"
+        amazon_combined_scores_embeds_save_path = f"result_data/amazon_result_combined_scores_embeds_{criteria}.pkl"
+        french_combined_scores_embeds_save_path = f"result_data/french_result_combined_scores_embeds_{criteria}.pkl"
+        merged_combined_scores_embeds_save_path = f"result_data/merged_result_combined_scores_embeds_{criteria}.pkl"
+        
+
+        scidocs_combined_scores = CombineScoresEmbeddings(scores_info_path=scidocs_scores_info_path,
+                                                doc_info_path=scidocs_doc_info_path,
+                                                categorized_words_path=scidocs_combined_result_save_path,
+                                                criteria=criteria, 
+                                                top_k=top_k)
+        scidocs_combined_scores.combine_results()
+        scidocs_combined_scores.save_result(result_save_path=scidocs_combined_scores_embeds_save_path)
+        del scidocs_combined_scores
+
+        amazon_combined_scores = CombineScoresEmbeddings(scores_info_path=amazon_scores_info_path,
+                                               doc_info_path=amazon_doc_info_path,
+                                               categorized_words_path=amazon_combined_result_save_path,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        amazon_combined_scores.combine_results()
+        amazon_combined_scores.save_result(result_save_path=amazon_combined_scores_embeds_save_path)
+        del amazon_combined_scores
+
+        french_combined_scores = CombineScoresEmbeddings(scores_info_path=french_scores_info_path,
+                                               doc_info_path=french_doc_info_path,
+                                               categorized_words_path=french_combined_result_save_path,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        french_combined_scores.combine_results()
+        french_combined_scores.save_result(result_save_path=french_combined_scores_embeds_save_path)
+        del french_combined_scores
+
+        merged_combined_scores = CombineScoresEmbeddings(scores_info_path=merged_scores_info_path,
+                                               doc_info_path=merged_doc_info_path,
+                                               categorized_words_path=merged_combined_result_save_path,
+                                               criteria=criteria, 
+                                               top_k=top_k)
+        merged_combined_scores.combine_results()
+        merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_save_path)
+        del merged_combined_scores

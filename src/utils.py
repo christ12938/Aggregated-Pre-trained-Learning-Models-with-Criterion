@@ -6,7 +6,12 @@ import random
 
 
 MAX_WORD_LIMIT = 510
-CRITERIA_LIST = ['ppmi', 'npmi', 'wanpmi', 'wanpmi_smooth', 'wanpmi_laplace']
+CRITERIA_LIST = ['pmi_laplace', 
+                 'ppmi', 'ppmi_delta', 'ppmi_laplace', 
+                 'npmi', 'npmi_laplace', 
+                 'wappmi_alpha_1', 'wappmi_alpha_1_delta', 'wappmi_alpha_1_laplace',
+                 'wappmi_alpha_2', 'wappmi_alpha_2_delta', 'wappmi_alpha_2_laplace',
+                 'wappmi_alpha_3', 'wappmi_alpha_3_delta', 'wappmi_alpha_3_laplace']
 
 
 def clean_sentence(sentence: str, regex_rules: str):

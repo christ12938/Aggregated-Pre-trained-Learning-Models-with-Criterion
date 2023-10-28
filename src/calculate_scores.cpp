@@ -9,36 +9,70 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <any>
 
 
 using JSON = nlohmann::json;
 using SCORE = std::vector<std::pair<std::string, double>>;
-using RESULT = std::vector<
-    std::tuple<
-        std::string,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE,
-        double, SCORE
-    >
->;
+using RESULT_CONTENT = std::vector<std::any>; 
+using RESULT = std::vector<RESULT_CONTENT>;
+
 
 /* For locking Results */
 std::mutex mtx;
 
 /* For Progress Checking */
 std::atomic<int> progress(0);
+
+/* For Storing the keys */
+const std::vector<std::string> dataNames = {
+    "total_pmi_laplace_score",
+    "pmi_laplace_candidate",
+    "total_pmi_smoothing_laplace_score",
+    "pmi_smoothing_laplace_candidate",
+    "total_ppmi_score",
+    "ppmi_candidate",
+    "total_ppmi_delta_score",
+    "ppmi_delta_candidate",
+    "total_ppmi_laplace_score",
+    "ppmi_laplace_candidate",
+    "total_npmi_score",
+    "npmi_candidate",
+    "total_npmi_laplace_score",
+    "npmi_laplace_candidate",
+    "total_wapmi_alpha_1_laplace_score",
+    "wapmi_alpha_1_laplace_candidate",
+    "total_wapmi_alpha_2_laplace_score",
+    "wapmi_alpha_2_laplace_candidate",
+    "total_wapmi_alpha_3_laplace_score",
+    "wapmi_alpha_3_laplace_candidate",
+    "total_wapmi_alpha_1_smoothing_laplace_score",
+    "wapmi_alpha_1_smoothing_laplace_candidate",
+    "total_wapmi_alpha_2_smoothing_laplace_score",
+    "wapmi_alpha_2_smoothing_laplace_candidate",
+    "total_wapmi_alpha_3_smoothing_laplace_score",
+    "wapmi_alpha_3_smoothing_laplace_candidate",
+    "total_wappmi_alpha_1_score",
+    "wappmi_alpha_1_candidate",
+    "total_wappmi_alpha_2_score",
+    "wappmi_alpha_2_candidate",
+    "total_wappmi_alpha_3_score",
+    "wappmi_alpha_3_candidate",
+    "total_wappmi_alpha_1_delta_score",
+    "wappmi_alpha_1_delta_candidate",
+    "total_wappmi_alpha_2_delta_score",
+    "wappmi_alpha_2_delta_candidate",
+    "total_wappmi_alpha_3_delta_score",
+    "wappmi_alpha_3_delta_candidate",
+    "total_wappmi_alpha_1_laplace_score",
+    "wappmi_alpha_1_laplace_candidate",
+    "total_wappmi_alpha_2_laplace_score",
+    "wappmi_alpha_2_laplace_candidate",
+    "total_wappmi_alpha_3_laplace_score",
+    "wappmi_alpha_3_laplace_candidate"};
+
+const std::size_t dataSize = dataNames.size();
+
 
 
 auto comparePairs(const std::pair<std::string, double> &a, const std::pair<std::string, double> &b) {
@@ -152,10 +186,12 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
 
     /* Calculate laplace simple scores */ 
     pmi_laplace = log2(p_ij_laplace / (p_i_laplace * p_j_laplace)); 
+    /* k = 3 */
     pmi_smoothing_laplace = log2((p_ij_laplace * p_ij_laplace * p_ij_laplace) / (p_i_laplace * p_j_laplace));
     ppmi_laplace = std::max(pmi_laplace, 0.0);
     npmi_laplace = -(pmi_laplace / log2(p_ij_laplace));
-    wapmi_smoothing_laplace = p_ij_laplace * pmi_smoothing;
+    wapmi_alpha_1_laplace = p_ij_laplace * pmi_laplace;
+    wapmi_alpha_1_smoothing_laplace = p_ij_laplace * pmi_smoothing_laplace;
     wappmi_alpha_1_laplace = p_ij_laplace * ppmi_laplace;
 
     /* Calculate Alphas */
@@ -180,17 +216,23 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
         wappmi_alpha_3_delta = alpha_3 * p_w_i_d_i * ppmi_delta;
     }
 
+    wapmi_alpha_2_laplace = alpha_2 * p_w_i_d_i_laplace * pmi_laplace;
+    wapmi_alpha_2_smoothing_laplace = alpha_2 * p_w_i_d_i_laplace * pmi_smoothing_laplace;
     wappmi_alpha_2_laplace = alpha_2 * p_w_i_d_i_laplace * ppmi_laplace;
+    wapmi_alpha_3_laplace = alpha_3 * p_w_i_d_i_laplace * pmi_laplace;
+    wapmi_alpha_3_smoothing_laplace = alpha_3 * p_w_i_d_i_laplace * pmi_smoothing_laplace;
     wappmi_alpha_3_laplace = alpha_3 * p_w_i_d_i_laplace * ppmi_laplace;
 
-    return std::make_tuple(pmi_laplace, pmi_smoothing_laplace,
-                           ppmi, ppmi_delta, ppmi_laplace, 
-                           npmi, npmi_laplace,
-                           wapmi_alpha_1_laplace, wapmi_alpha_2_laplace, wapmi_alpha_3_laplace,
-                           wapmi_alpha_1_smoothing_laplace, wapmi_alpha_2_smoothing_laplace, wapmi_alpha_3_smoothing_laplace,
-                           wappmi_alpha_1, wappmi_alpha_2, wappmi_alpha_3,
-                           wappmi_alpha_1_delta, wappmi_alpha_2_delta, wappmi_alpha_3_delta,
-                           wappmi_alpha_1_laplace, wappmi_alpha_2_laplace, wappmi_alpha_3_laplace);
+    return std::vector<double>{
+        pmi_laplace, pmi_smoothing_laplace,
+        ppmi, ppmi_delta, ppmi_laplace,
+        npmi, npmi_laplace,
+        wapmi_alpha_1_laplace, wapmi_alpha_2_laplace, wapmi_alpha_3_laplace,
+        wapmi_alpha_1_smoothing_laplace, wapmi_alpha_2_smoothing_laplace, wapmi_alpha_3_smoothing_laplace,
+        wappmi_alpha_1, wappmi_alpha_2, wappmi_alpha_3,
+        wappmi_alpha_1_delta, wappmi_alpha_2_delta, wappmi_alpha_3_delta,
+        wappmi_alpha_1_laplace, wappmi_alpha_2_laplace, wappmi_alpha_3_laplace
+    };
 }
 
 
@@ -209,123 +251,41 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
 
         const auto &firstLevelVocab = it.key();
         const auto &firstLevelValue = it.value();
-        SCORE pmi_laplace_scores,
-              ppmi_scores,
-              ppmi_delta_scores,
-              ppmi_laplace_scores,
-              npmi_scores,
-              npmi_laplace_scores,
-              wappmi_alpha_1_scores,
-              wappmi_alpha_2_scores,
-              wappmi_alpha_3_scores,
-              wappmi_alpha_1_delta_scores,
-              wappmi_alpha_2_delta_scores,
-              wappmi_alpha_3_delta_scores,
-              wappmi_alpha_1_laplace_scores,
-              wappmi_alpha_2_laplace_scores,
-              wappmi_alpha_3_laplace_scores;
-
-        std::vector<SCORE> scoresVector;
+        
+        /* Create scores vector */
+        std::vector<SCORE> scoresVector(dataSize);
 
         /* Loop through W_j */
         for (const auto &[secondLevelVocab, secondLevelValue] : vocabEntries.items()){
             /* Skip same word */
             if (&firstLevelValue != &secondLevelValue){
                 const auto &calculatedScores = calScores(firstLevelValue, secondLevelValue, docEntries, 
-                                               totalVocabCount, totalDocCount, totalWordCount);
+                                                         totalVocabCount, totalDocCount, totalWordCount);
                
-                for (int i = 0; i < calculatedScores.size(); i++) {
-                    scoresVector.emplace_back(secondLevelVocab, calculatedScores[i]); 
+                /* Emplace scores to list */
+                for (int i = 0; i < dataSize; i++) {
+                    scoresVector[i].emplace_back(secondLevelVocab, calculatedScores[i]); 
                 }
-
-                pmi_laplace_scores.emplace_back(secondLevelVocab, pmi_laplace_score);
-                ppmi_scores.emplace_back(secondLevelVocab, ppmi_score);
-                ppmi_delta_scores.emplace_back(secondLevelVocab, ppmi_delta_score);
-                ppmi_laplace_scores.emplace_back(secondLevelVocab, ppmi_laplace_score);
-                npmi_scores.emplace_back(secondLevelVocab, npmi_score);
-                npmi_laplace_scores.emplace_back(secondLevelVocab, npmi_laplace_score);
-                wappmi_alpha_1_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_score);
-                wappmi_alpha_2_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_score);
-                wappmi_alpha_3_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_score);
-                wappmi_alpha_1_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_delta_score);
-                wappmi_alpha_2_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_delta_score);
-                wappmi_alpha_3_delta_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_delta_score);
-                wappmi_alpha_1_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_laplace_score);
-                wappmi_alpha_2_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_laplace_score);
-                wappmi_alpha_3_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_laplace_score);
             }
         }
 
-        /* Sort the words */
-        std::sort(pmi_laplace_scores.begin(), pmi_laplace_scores.end(), comparePairs);
-        std::sort(ppmi_scores.begin(), ppmi_scores.end(), comparePairs);
-        std::sort(ppmi_delta_scores.begin(), ppmi_delta_scores.end(), comparePairs);
-        std::sort(ppmi_laplace_scores.begin(), ppmi_laplace_scores.end(), comparePairs);
-        std::sort(npmi_scores.begin(), npmi_scores.end(), comparePairs);
-        std::sort(npmi_laplace_scores.begin(), npmi_laplace_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_1_scores.begin(), wappmi_alpha_1_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_2_scores.begin(), wappmi_alpha_2_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_3_scores.begin(), wappmi_alpha_3_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_1_delta_scores.begin(), wappmi_alpha_1_delta_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_2_delta_scores.begin(), wappmi_alpha_2_delta_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_3_delta_scores.begin(), wappmi_alpha_3_delta_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.end(), comparePairs);
-        std::sort(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.end(), comparePairs);
+        /* Sort the words, calculate scores and get first K candidates */
+        RESULT_CONTENT resultContent;
 
-        /* Get Top K Words */ 
-        const SCORE pmi_laplace_firstK(pmi_laplace_scores.begin(), pmi_laplace_scores.begin() + topK);
-        const SCORE ppmi_firstK(ppmi_scores.begin(), ppmi_scores.begin() + topK);
-        const SCORE ppmi_delta_firstK(ppmi_delta_scores.begin(), ppmi_delta_scores.begin() + topK);
-        const SCORE ppmi_laplace_firstK(ppmi_laplace_scores.begin(), ppmi_laplace_scores.begin() + topK);
-        const SCORE npmi_firstK(npmi_scores.begin(), npmi_scores.begin() + topK);
-        const SCORE npmi_laplace_firstK(npmi_laplace_scores.begin(), npmi_laplace_scores.begin() + topK);
-        const SCORE wappmi_alpha_1_firstK(wappmi_alpha_1_scores.begin(), wappmi_alpha_1_scores.begin() + topK);
-        const SCORE wappmi_alpha_2_firstK(wappmi_alpha_2_scores.begin(), wappmi_alpha_2_scores.begin() + topK);
-        const SCORE wappmi_alpha_3_firstK(wappmi_alpha_3_scores.begin(), wappmi_alpha_3_scores.begin() + topK);
-        const SCORE wappmi_alpha_1_delta_firstK(wappmi_alpha_1_delta_scores.begin(), wappmi_alpha_1_delta_scores.begin() + topK);
-        const SCORE wappmi_alpha_2_delta_firstK(wappmi_alpha_2_delta_scores.begin(), wappmi_alpha_2_delta_scores.begin() + topK);
-        const SCORE wappmi_alpha_3_delta_firstK(wappmi_alpha_3_delta_scores.begin(), wappmi_alpha_3_delta_scores.begin() + topK);
-        const SCORE wappmi_alpha_1_laplace_firstK(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.begin() + topK);
-        const SCORE wappmi_alpha_2_laplace_firstK(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.begin() + topK);
-        const SCORE wappmi_alpha_3_laplace_firstK(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.begin() + topK);
-
-        /* Calculate total Score */
-        const auto total_pmi_laplace_score = sumScores(pmi_laplace_scores);
-        const auto total_ppmi_score = sumScores(ppmi_scores);
-        const auto total_ppmi_delta_score = sumScores(ppmi_delta_scores);
-        const auto total_ppmi_laplace_score = sumScores(ppmi_laplace_scores);
-        const auto total_npmi_score = sumScores(npmi_scores);
-        const auto total_npmi_laplace_score = sumScores(npmi_laplace_scores);
-        const auto total_wappmi_alpha_1_score = sumScores(wappmi_alpha_1_scores);
-        const auto total_wappmi_alpha_2_score = sumScores(wappmi_alpha_2_scores);
-        const auto total_wappmi_alpha_3_score = sumScores(wappmi_alpha_3_scores);
-        const auto total_wappmi_alpha_1_delta_score = sumScores(wappmi_alpha_1_delta_scores);
-        const auto total_wappmi_alpha_2_delta_score = sumScores(wappmi_alpha_2_delta_scores);
-        const auto total_wappmi_alpha_3_delta_score = sumScores(wappmi_alpha_3_delta_scores);
-        const auto total_wappmi_alpha_1_laplace_score = sumScores(wappmi_alpha_1_laplace_scores);
-        const auto total_wappmi_alpha_2_laplace_score = sumScores(wappmi_alpha_2_laplace_scores);
-        const auto total_wappmi_alpha_3_laplace_score = sumScores(wappmi_alpha_3_laplace_scores);
+        resultContent.emplace_back(firstLevelVocab);
+        for (int i = 0; i < dataSize; i++) {
+            std::sort(scoresVector[i].begin(), scoresVector[i].end(), comparePairs);
+            const SCORE firstKScores(scoresVector[i].begin(), 
+                                     scoresVector[i].begin() + std::min(topK, static_cast<int>(scoresVector[i].size())));
+            resultContent.emplace_back(sumScores(scoresVector[i]));
+            resultContent.emplace_back(std::move(firstKScores));
+        }
 
         /* Append Results */
         {
             std::lock_guard<std::mutex> lock(mtx);
-            results.emplace_back(firstLevelVocab,
-                                 total_pmi_laplace_score, pmi_laplace_firstK,
-                                 total_ppmi_score, ppmi_firstK,
-                                 total_ppmi_delta_score, ppmi_delta_firstK,
-                                 total_ppmi_laplace_score, ppmi_laplace_firstK,
-                                 total_npmi_score, npmi_firstK,
-                                 total_npmi_laplace_score, npmi_laplace_firstK,
-                                 total_wappmi_alpha_1_score, wappmi_alpha_1_firstK,
-                                 total_wappmi_alpha_2_score, wappmi_alpha_2_firstK,
-                                 total_wappmi_alpha_3_score, wappmi_alpha_3_firstK,
-                                 total_wappmi_alpha_1_delta_score, wappmi_alpha_1_delta_firstK,
-                                 total_wappmi_alpha_2_delta_score, wappmi_alpha_2_delta_firstK,
-                                 total_wappmi_alpha_3_delta_score, wappmi_alpha_3_delta_firstK,
-                                 total_wappmi_alpha_1_laplace_score, wappmi_alpha_1_laplace_firstK,
-                                 total_wappmi_alpha_2_laplace_score, wappmi_alpha_2_laplace_firstK,
-                                 total_wappmi_alpha_3_laplace_score, wappmi_alpha_3_laplace_firstK);
+            
+            results.emplace_back(std::move(resultContent));
         }
         progress++;
     }
@@ -394,54 +354,13 @@ auto createCandidateJson(const SCORE &content){
 auto createJson(const RESULT &results) {
     std::vector<JSON> dataToWrite;
     std::cout << "Creating JSON ..." << std::endl;
-    for (const auto &firstLevelTuple : results){
+    for (const auto &firstLevelVector : results){
         JSON entry;
-        entry["vocab"] = std::get<0>(firstLevelTuple);
-
-        entry["total_pmi_laplace_score"] = std::get<1>(firstLevelTuple);
-        entry["pmi_laplace_candidate"] = createCandidateJson(std::get<2>(firstLevelTuple));
-        
-        entry["total_ppmi_score"] = std::get<3>(firstLevelTuple);
-        entry["ppmi_candidate"] = createCandidateJson(std::get<4>(firstLevelTuple));
-        
-        entry["total_ppmi_delta_score"] = std::get<5>(firstLevelTuple);
-        entry["ppmi_delta_candidate"] = createCandidateJson(std::get<6>(firstLevelTuple));
-        
-        entry["total_ppmi_laplace_score"] = std::get<7>(firstLevelTuple);
-        entry["ppmi_laplace_candidate"] = createCandidateJson(std::get<8>(firstLevelTuple));
-        
-        entry["total_npmi_score"] = std::get<9>(firstLevelTuple);
-        entry["npmi_candidate"] = createCandidateJson(std::get<10>(firstLevelTuple));
-        
-        entry["total_npmi_laplace_score"] = std::get<11>(firstLevelTuple);
-        entry["npmi_laplace_candidate"] = createCandidateJson(std::get<12>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_1_score"] = std::get<13>(firstLevelTuple);
-        entry["wappmi_alpha_1_candidate"] = createCandidateJson(std::get<14>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_2_score"] = std::get<15>(firstLevelTuple);
-        entry["wappmi_alpha_2_candidate"] = createCandidateJson(std::get<16>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_3_score"] = std::get<17>(firstLevelTuple);
-        entry["wappmi_alpha_3_candidate"] = createCandidateJson(std::get<18>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_1_delta_score"] = std::get<19>(firstLevelTuple);
-        entry["wappmi_alpha_1_delta_candidate"] = createCandidateJson(std::get<20>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_2_delta_score"] = std::get<21>(firstLevelTuple);
-        entry["wappmi_alpha_2_delta_candidate"] = createCandidateJson(std::get<22>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_3_delta_score"] = std::get<23>(firstLevelTuple);
-        entry["wappmi_alpha_3_delta_candidate"] = createCandidateJson(std::get<24>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_1_laplace_score"] = std::get<25>(firstLevelTuple);
-        entry["wappmi_alpha_1_laplace_candidate"] = createCandidateJson(std::get<26>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_2_laplace_score"] = std::get<27>(firstLevelTuple);
-        entry["wappmi_alpha_2_laplace_candidate"] = createCandidateJson(std::get<28>(firstLevelTuple));
-        
-        entry["total_wappmi_alpha_3_laplace_score"] = std::get<29>(firstLevelTuple);
-        entry["wappmi_alpha_3_laplace_candidate"] = createCandidateJson(std::get<30>(firstLevelTuple));
+        entry["vocab"] = std::any_cast<std::string>(firstLevelVector[0]);
+        for (int i = 1; i < dataSize + 1; i += 2){
+           entry[dataNames[i - 1]] = std::any_cast<double>(firstLevelVector[i]); 
+           entry[dataNames[i]] = createCandidateJson(std::any_cast<SCORE>(firstLevelVector[i + 1]));
+        }
 
         dataToWrite.emplace_back(std::move(entry));
     }

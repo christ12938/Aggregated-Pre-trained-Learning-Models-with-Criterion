@@ -22,24 +22,36 @@ def calculate_npmi(p_i, p_j, p_ij):
         return -1 * (math.log(p_ij / (p_i * p_j)) / math.log(p_ij))
 
 
-def calculate_wanpmi(measure: str, vocab_info_dict: dict, words: list, w_i: str, w_j: str, total_doc_count, c_ij, p_i, p_j, p_ij):
-    wanpmi = 0
-    npmi = calculate_ppmi(p_i, p_j, p_ij)
-    if measure == 'wanpmi':
-        return p_ij * npmi 
-    elif measure == 'wanpmi_smoothing':
-        min_freq = min(len(vocab_info_dict[w_i]), len(vocab_info_dict[w_j])) 
-        delta = (c_ij / (c_ij + 1)) * (min_freq / (min_freq + 1))
-        return p_ij * delta * npmi
+def calculate_delta(c_i, c_j, c_ij):
+    min_freq = min(c_i, c_j)
+    return (c_ij / (c_ij + 1)) * (min_freq / (min_freq + 1))
+
+
+def calculate_wappmi(measure: str, vocab_info_dict: dict, doc_info_dict: dict, w_i: str, w_j: str, 
+                     total_vocab_count: int, total_doc_count: int, total_word_count: int, intersecting_keys, p_i, p_j, p_ij):
+    ppmi = calculate_ppmi(p_i, p_j, p_ij)
+    if 'wappmi_alpha_1' in measure:
+        return p_ij * ppmi 
     else:
-        k = 0.01
-        laplace_p_i = (len(vocab_info_dict[w_i]) + k) / total_doc_count
-        laplace_p_j = (len(vocab_info_dict[w_j]) + k) / total_doc_count
-        laplace_p_ij = (c_ij + k) / total_doc_count
-        laplace_npmi = calculate_ppmi(p_i=laplace_p_i, p_j=laplace_p_j, p_ij=laplace_p_ij)
-        return laplace_p_ij * laplace_npmi
+        p_w_i_d_i = 0
+        for intersect_key in intersecting_keys:
+            if 'laplace' in measure:
+                w_i_d_i_count = vocab_info_dict[w_i]['id'][intersect_key] + 0.01
+            else:
+                w_i_d_i_count = vocab_info_dict[w_i]['id'][intersect_key]
+            p_w_i_d_i += (w_i_d_i_count / doc_info_dict[intersect_key]);
+
+        if 'alpha_2' in measure:
+            alpha_2 = 1 / (total_word_count - vocab_info_dict[w_i]['count'])
+            return alpha_2 * p_w_i_d_i * ppmi
+        elif 'alpha_3' in measure:
+            alpha_3 = 1 / (vocab_info_dict[w_j]['count'] * total_vocab_count)
+            return alpha_3 * p_w_i_d_i * ppmi
+        else:
+            return None
 
 
+# TODO: Change
 def evaluate_performance(vocab_info_df: pd.DataFrame, result_df: pd.DataFrame, measure: str, top_k: int,
                          experiment: str):
     if measure not in CRITERIA_LIST:
@@ -57,26 +69,49 @@ def evaluate_performance(vocab_info_df: pd.DataFrame, result_df: pd.DataFrame, m
     return np.mean(result_scores)
 
 
-def calculate_score_per_seed(vocab_info_dict: dict, words: list, top_k: int, total_doc_count: int, measure: str):
+def calculate_score_per_seed(vocab_info_dict: dict, doc_info_dict: dict, words: list, top_k: int, total_vocab_count: int, 
+                             total_doc_count: int, total_word_count: int, measure: str):
 
     # Define variables for the function
     words = words[:top_k]
     segmented_words = list(combinations(words, 2))
     seed_scores = np.zeros(len(segmented_words))
-    for idy, (w_i, w_j) in enumerate(segmented_words):    
-        # Calculate criteria 
-        p_i = len(vocab_info_dict[w_i]) / total_doc_count
-        p_j = len(vocab_info_dict[w_j]) / total_doc_count
-        c_ij = len(set(vocab_info_dict[w_i].keys()) & set(vocab_info_dict[w_j].keys()))
-        p_ij = c_ij / total_doc_count
 
-        if measure == 'ppmi':
+    for idy, (w_i, w_j) in enumerate(segmented_words):    
+        
+        intersecting_keys = set(vocab_info_dict[w_i]['id'].keys()) & set(vocab_info_dict[w_j]['id'].keys())
+        
+        # Calculate criteria 
+        if 'laplace' in measure:
+            p_i = (len(vocab_info_dict[w_i]['id']) + 0.01) / total_doc_count
+            p_j = (len(vocab_info_dict[w_j]['id']) + 0.01) / total_doc_count
+            c_ij = len(intersecting_keys) + 0.01
+            p_ij = c_ij / total_doc_count
+        else:
+            p_i = len(vocab_info_dict[w_i]['id']) / total_doc_count
+            p_j = len(vocab_info_dict[w_j]['id']) / total_doc_count
+            c_ij = len(intersecting_keys)
+            p_ij = c_ij / total_doc_count
+            
+        if 'delta' in measure:
+            delta = calculate_delta(len(vocab_info_dict[w_i]['id']), len(vocab_info_dict[w_j]['id']), c_ij)
+
+        if measure == 'pmi_laplace' or measure == 'ppmi' or measure == 'ppmi_laplace':
             seed_scores[idy] = calculate_ppmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
-        elif measure == 'npmi':
+        elif measure == 'ppmi_delta':
+            seed_scores[idy] = delta * calculate_ppmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
+        elif measure == 'npmi' or measure == 'npmi_laplace':
             seed_scores[idy] = calculate_npmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
-        elif 'wanpmi' in measure:
-            seed_scores[idy] = calculate_wanpmi(measure=measure, vocab_info_dict=vocab_info_dict, 
-                                               words=words, w_i=w_i, w_j=w_j, total_doc_count=total_doc_count, c_ij=c_ij, p_i=p_i, p_j=p_j, p_ij=p_ij) 
+        elif 'wappmi' in measure:
+            seed_scores[idy] = calculate_wappmi(measure=measure, vocab_info_dict=vocab_info_dict, 
+                                                doc_info_dict=doc_info_dict,
+                                                w_i=w_i, w_j=w_j, total_vocab_count=total_vocab_count, 
+                                                total_doc_count=total_doc_count,
+                                                total_word_count=total_word_count,
+                                                intersecting_keys=intersecting_keys,
+                                                p_i=p_i, p_j=p_j, p_ij=p_ij) 
+            if 'delta' in measure:
+                seed_scores[idy] = delta * seed_scores[idy]
         else:
             raise Exception(f"No measure named {measure}")
 
@@ -113,7 +148,7 @@ if __name__ == '__main__':
     merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
     merged_combined_npmi_result_save_path = "result_data/merged_result_combined_npmi.pkl"
     
-    measure = 'wanpmi_alpha_3'
+    measure = 'wappmi_alpha_3'
     top_k = 20
 
     # Scidocs

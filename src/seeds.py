@@ -2,7 +2,6 @@ import random
 
 
 def get_scidocs_seeds():
-    """
     seeds = [
         'cardiovascular diseases',
         'chronic kidney disease',
@@ -20,6 +19,7 @@ def get_scidocs_seeds():
     """
     seeds = ["nanotechnology", "pharmaceutics", "audiology", "viromics", "biophysics", "vaccinology", "cholera",
              "chikungunya", "dysentery"]
+    """
     return seeds
 
 
@@ -80,4 +80,4 @@ def get_french_seeds():
         "voyages spatiaux"
                 ]
 
-    return seeds
+    return topics_fr
