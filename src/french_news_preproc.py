@@ -1,3 +1,4 @@
+import regex as re
 from utils import clean_sentence, create_vocab_info_df, create_folder, create_doc_info_df, save_info
 
 

@@ -1,5 +1,6 @@
+import regex as re
 import pandas as pd
-from utils import create_vocab_info_df, create_folder, create_doc_info_df, save_info
+from utils import create_vocab_info_df, create_folder, create_doc_info_df, save_info, clean_sentence
 from tqdm import tqdm
 
 
@@ -20,6 +21,8 @@ class AmazonPreprocess:
 
 
     def preprocess(self):
+        for idx, data in enumerate(self.data):
+            self.data[idx] = clean_sentence(sentence=data.strip().lower(), regex_rules=r'^$')
         self.vocab_info_df = create_vocab_info_df(sentences_list=self.data, id_prefix=self.id_prefix, sample=self.sample)
         self.doc_info_df = create_doc_info_df(vocab_info_df=self.vocab_info_df)
 

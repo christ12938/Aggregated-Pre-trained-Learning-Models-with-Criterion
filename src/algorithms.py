@@ -73,9 +73,9 @@ class CombineCriteria:
     def combine_results(self):
         vocab_info_dict = self.vocab_info_df.set_index('vocab').T.to_dict()
         doc_info_dict = self.doc_info_df.set_index('id')['length'].to_dict() 
-        total_vocab_count = len(vocab_info_dict)
-        total_doc_count = len(self.doc_info_df['id'])
-        total_word_count = self.vocab_info_df['count'].sum() 
+#        total_vocab_count = len(vocab_info_dict)
+#        total_doc_count = len(self.doc_info_df['id'])
+#        total_word_count = self.vocab_info_df['count'].sum() 
         seeds = list(self.categorized_words_dicts[0].keys())
         self.result_dict = {}
         self.decision_dict = {}
@@ -83,10 +83,12 @@ class CombineCriteria:
         for seed in tqdm(seeds, desc=f"Calculating Highest {self.top_k} {self.criteria} for Each Seed"):
             seed_scores = np.zeros(len(self.categorized_words_dicts))
             for idx, result in enumerate(self.categorized_words_dicts):
-                seed_scores[idx] = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
-                                                            words=result[seed], top_k=top_k, total_vocab_count=total_vocab_count, 
+                total_doc_count, total_word_count = calculate_info(vocab_info_dict, result[seed][:top_k]) 
+                temp = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
+                        words=result[seed][:top_k], total_vocab_count=top_k, 
                                                             total_doc_count=total_doc_count, total_word_count=total_word_count, 
                                                             measure=self.criteria)
+                seed_scores[idx] = sum(t[1] for t in temp) / len(temp)
             self.result_dict[seed] = self.categorized_words_dicts[np.argmax(seed_scores)][seed]
             self.decision_dict[seed] = self.model_list[np.argmax(seed_scores)]
 
@@ -99,21 +101,32 @@ class CombineCriteria:
         pd.DataFrame(list(self.decision_dict.items()), columns=['seed', 'decision']).to_pickle(decision_save_path)
 
 
+def calculate_info(vocab_info_dict: dict, words: list):
+    result_doc = set()
+    result_word = 0
+    for word in words:
+        result_doc.update(vocab_info_dict[word]['id'].keys())
+        result_word += vocab_info_dict[word]['count']
+    return len(result_doc), result_word
+
+
 class CombineScoresEmbeddings:
-    def __init__(self, scores_info_path: str, doc_info_path: str, categorized_words_path: str, criteria: str, top_k: int, discard_subtopic=True):
+    def __init__(self, vocab_info_path: str, scores_info_path: str, doc_info_path: str, categorized_words_path: str, criteria: str, top_k: int, discard_subtopic=False):
         if criteria not in CRITERIA_LIST:
             raise Exception(f"No criteria named {criteria}")
         self.criteria = criteria
         self.top_k = top_k
         self.scores_info_df = None
+        self.vocab_info_df = None
         self.doc_info_df = None
         self.categorized_words_dict = None
         self.result_dict = None
         self.discard_subtopic = discard_subtopic
-        self.open_files(scores_info_path=scores_info_path, doc_info_path=doc_info_path, categorized_words_path=categorized_words_path)
+        self.open_files(vocab_info_path=vocab_info_path, scores_info_path=scores_info_path, doc_info_path=doc_info_path, categorized_words_path=categorized_words_path)
     
 
-    def open_files(self, scores_info_path: str, doc_info_path: str, categorized_words_path: str):
+    def open_files(self, vocab_info_path: str, scores_info_path: str, doc_info_path: str, categorized_words_path: str):
+        self.vocab_info_df = pd.read_pickle(vocab_info_path)
         self.scores_info_df = pd.read_pickle(scores_info_path)
         self.doc_info_df = pd.read_pickle(doc_info_path)
         self.categorized_words_dict = pd.read_pickle(categorized_words_path).set_index('seed')['words'].to_dict() 
@@ -121,8 +134,28 @@ class CombineScoresEmbeddings:
         # Sanity Checks: TODO
 
 
+    @staticmethod
+    def remove_duplicates_based_on_first(input_list):
+        seen = set()
+        result = []
+        for item in input_list:
+            # Check if the first element of the tuple is in the set
+            if item[0] not in seen:
+                seen.add(item[0])
+                result.append(item)
+        return result
+
+    @staticmethod
+    def sum_based_on_first(tuples_list):
+        result = {}
+        for key, value in tuples_list:
+            result.setdefault(key, 0)
+            result[key] += value
+        return list(result.items())
+
     def combine_results(self):
-        total_doc_count = len(self.doc_info_df['id'])
+        vocab_info_dict = self.vocab_info_df.set_index('vocab').T.to_dict()
+        doc_info_dict = self.doc_info_df.set_index('id')['length'].to_dict() 
         scores_info_dict = self.scores_info_df.set_index('vocab').T.to_dict()
         self.result_dict = {}
 
@@ -130,11 +163,38 @@ class CombineScoresEmbeddings:
             result_words = []
             top_k_words = words[:top_k]            
             for word in top_k_words:
+                subtopic_words = []
+                #topic_score = scores_info_dict[word][f'total_{self.criteria}_score']
                 if self.discard_subtopic is False:
                     result_words.append(word)
-                result_words.extend([(key, val) for key, val in scores_info_dict[word][f'{self.criteria}_candidate'].items()])
+                result_words.extend([key for key, val in scores_info_dict[word][f'{self.criteria}_candidate'].items()])
+#                subtopic_words.extend([key for key, val in scores_info_dict[word][f'{self.criteria}_candidate'].items()])
+#                total_doc_count, total_word_count = calculate_info(vocab_info_dict, subtopic_words) 
+#                temp = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
+#                                                            words=subtopic_words, total_vocab_count=len(subtopic_words), 
+#                                                            total_doc_count=total_doc_count, total_word_count=total_word_count, 
+#                                                            measure=self.criteria)
+#                temp_score = sum(t[1] for t in temp) / len(temp)
+#                result_words.append((subtopic_words, temp_score * scores_info_dict[word][f'total_{self.criteria}_score']))
             #TODO: How to sort?
-            self.result_dict[seed] = [e[0] if isinstance(e, tuple) else e for e in result_words]
+            #result_words = list(set(result_words)) 
+            #total_doc_count, total_word_count = calculate_info(vocab_info_dict, result_words) 
+            #result_words = self.remove_duplicates_based_on_first(result_words)
+#            result_words = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
+#                                                        words=result_words, total_vocab_count=len(result_words), 
+#                                                        total_doc_count=total_doc_count, total_word_count=total_word_count, 
+#                                                        measure=self.criteria)
+#            result_words = self.sum_based_on_first(result_words)
+#            result_words = sorted(result_words, key=lambda x: x[1], reverse=True)
+#            result_words = [e[0] if isinstance(e, tuple) else e for e in result_words]
+#            self.result_dict[seed] = [e[0] if isinstance(e, tuple) else e for e in result_words]
+            seed_scores = [scores_info_dict[e][f'total_{self.criteria}_score'] for e in result_words]
+            result_words = [x for _, x in sorted(zip(seed_scores, result_words), reverse=True)]
+            self.result_dict[seed] = []
+            for item in result_words:
+                if item not in self.result_dict[seed]:
+                    self.result_dict[seed].append(item)
+
 
     def save_result(self, result_save_path: str):
         print("Saving Results ...")
@@ -375,17 +435,17 @@ if __name__ == "__main__":
                                          decision_save_path=french_combined_decision_save_path)
         del french_combined
 
-        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
-                                               doc_info_path=merged_doc_info_path,
-                                               categorized_words_paths=merged_words_paths, 
-                                               model_list=model_list,
-                                               criteria=criteria, 
-                                               top_k=top_k)
-        merged_combined.combine_results()
-        merged_combined.save_result(result_save_path=merged_combined_result_save_path, 
-                                         decision_save_path=merged_combined_decision_save_path)
-        del merged_combined
-
+#        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
+#                                               doc_info_path=merged_doc_info_path,
+#                                               categorized_words_paths=merged_words_paths, 
+#                                               model_list=model_list,
+#                                               criteria=criteria, 
+#                                               top_k=top_k)
+#        merged_combined.combine_results()
+#        merged_combined.save_result(result_save_path=merged_combined_result_save_path, 
+#                                         decision_save_path=merged_combined_decision_save_path)
+#        del merged_combined
+#
 
         # Combied Scores Embeddings
         scidocs_scores_info_path = "data/scidocs_scores.pkl"
@@ -399,7 +459,7 @@ if __name__ == "__main__":
         merged_combined_scores_embeds_save_path = f"result_data/merged_result_combined_scores_embeds_{criteria}.pkl"
         
 
-        scidocs_combined_scores = CombineScoresEmbeddings(scores_info_path=scidocs_scores_info_path,
+        scidocs_combined_scores = CombineScoresEmbeddings(vocab_info_path=scidocs_vocab_path, scores_info_path=scidocs_scores_info_path,
                                                 doc_info_path=scidocs_doc_info_path,
                                                 categorized_words_path=scidocs_combined_result_save_path,
                                                 criteria=criteria, 
@@ -408,7 +468,7 @@ if __name__ == "__main__":
         scidocs_combined_scores.save_result(result_save_path=scidocs_combined_scores_embeds_save_path)
         del scidocs_combined_scores
 
-        amazon_combined_scores = CombineScoresEmbeddings(scores_info_path=amazon_scores_info_path,
+        amazon_combined_scores = CombineScoresEmbeddings(vocab_info_path=amazon_vocab_path, scores_info_path=amazon_scores_info_path,
                                                doc_info_path=amazon_doc_info_path,
                                                categorized_words_path=amazon_combined_result_save_path,
                                                criteria=criteria, 
@@ -417,7 +477,7 @@ if __name__ == "__main__":
         amazon_combined_scores.save_result(result_save_path=amazon_combined_scores_embeds_save_path)
         del amazon_combined_scores
 
-        french_combined_scores = CombineScoresEmbeddings(scores_info_path=french_scores_info_path,
+        french_combined_scores = CombineScoresEmbeddings(vocab_info_path=french_vocab_path, scores_info_path=french_scores_info_path,
                                                doc_info_path=french_doc_info_path,
                                                categorized_words_path=french_combined_result_save_path,
                                                criteria=criteria, 
@@ -426,11 +486,11 @@ if __name__ == "__main__":
         french_combined_scores.save_result(result_save_path=french_combined_scores_embeds_save_path)
         del french_combined_scores
 
-        merged_combined_scores = CombineScoresEmbeddings(scores_info_path=merged_scores_info_path,
-                                               doc_info_path=merged_doc_info_path,
-                                               categorized_words_path=merged_combined_result_save_path,
-                                               criteria=criteria, 
-                                               top_k=top_k)
-        merged_combined_scores.combine_results()
-        merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_save_path)
-        del merged_combined_scores
+#        merged_combined_scores = CombineScoresEmbeddings(scores_info_path=merged_scores_info_path,
+#                                               doc_info_path=merged_doc_info_path,
+#                                               categorized_words_path=merged_combined_result_save_path,
+#                                               criteria=criteria, 
+#                                               top_k=top_k)
+#        merged_combined_scores.combine_results()
+#        merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_save_path)
+#        del merged_combined_scores

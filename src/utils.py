@@ -6,17 +6,28 @@ import random
 
 
 MAX_WORD_LIMIT = 510
+#CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace',
+#                 'ppmi', 'ppmi_delta', 'ppmi_laplace', 
+#                 'npmi', 'npmi_laplace',
+#                 'wapmi_alpha_1_laplace', 'wapmi_alpha_1_smoothing_laplace',
+#                 'wapmi_alpha_2_laplace', 'wapmi_alpha_2_smoothing_laplace',
+#                 'wapmi_alpha_3_laplace', 'wapmi_alpha_3_smoothing_laplace',
+#                 'wappmi_alpha_1', 'wappmi_alpha_1_delta', 'wappmi_alpha_1_laplace',
+#                 'wappmi_alpha_2', 'wappmi_alpha_2_delta', 'wappmi_alpha_2_laplace',
+#                 'wappmi_alpha_3', 'wappmi_alpha_3_delta', 'wappmi_alpha_3_laplace']
+#
 CRITERIA_LIST = ['pmi_laplace', 
-                 'ppmi', 'ppmi_delta', 'ppmi_laplace', 
-                 'npmi', 'npmi_laplace', 
-                 'wappmi_alpha_1', 'wappmi_alpha_1_delta', 'wappmi_alpha_1_laplace',
-                 'wappmi_alpha_2', 'wappmi_alpha_2_delta', 'wappmi_alpha_2_laplace',
-                 'wappmi_alpha_3', 'wappmi_alpha_3_delta', 'wappmi_alpha_3_laplace']
-
+                 'ppmi', 
+                 'npmi']
 
 def clean_sentence(sentence: str, regex_rules: str):
     cleaned_sentence = re.sub(regex_rules, '', sentence)
-    cleaned_sentence = ' '.join(cleaned_sentence.split())
+    cleaned_sentence_list = cleaned_sentence.split()
+    result_list = []
+    for e in cleaned_sentence_list:
+        if any(char.isalpha() for char in e):
+            result_list.append(e)
+    cleaned_sentence = ' '.join(result_list)
     return cleaned_sentence
 
 
