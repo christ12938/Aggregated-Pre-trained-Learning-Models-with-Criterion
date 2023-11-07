@@ -1,8 +1,6 @@
 .idea
 __pycache__/
 data/
-data_bck/
-garbage/
 scidocs_data/
 embeddings/
 result_data/
@@ -15,3 +13,4 @@ decision_data/
 embeddings_bck/
 output.txt
 output_*.log
+nohup.out

@@ -29,7 +29,7 @@ if mode == "vocab" or mode == "doc":
     json_dict = {}
     for entry in df.to_dict("records"):
         if mode == "vocab":
-            json_dict[entry["vocab"]] = {"id": entry["id"], "count": int(entry["count"])}
+            json_dict[entry["vocab"]] = {"id": entry["id"], "count": int(entry["count"]), 'idf': float(entry['standardized_idf'])}
         elif mode == "doc":
             json_dict[entry["id"]] = int(entry["length"])
 

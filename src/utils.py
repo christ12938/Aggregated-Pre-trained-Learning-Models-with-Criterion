@@ -4,7 +4,6 @@ from tqdm import tqdm
 import pandas as pd
 import random
 
-
 MAX_WORD_LIMIT = 510
 #CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace',
 #                 'ppmi', 'ppmi_delta', 'ppmi_laplace', 
@@ -73,3 +72,9 @@ def save_info(dataset: str, vocab_info_save_path: str, doc_info_save_path: str, 
     create_folder(path=doc_info_save_path)
     vocab_info_df.to_pickle(vocab_info_save_path)
     doc_info_df.to_pickle(doc_info_save_path)
+
+
+def save_seetopic_data(data: list, path: str):
+    with open(path, 'w', encoding='utf-8') as f:
+        for line in data:
+            f.write(line + '\n')

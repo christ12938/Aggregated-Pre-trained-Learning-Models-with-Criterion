@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <algorithm> // For std::min_element and std::max_element
 
 
 using JSON = nlohmann::json;
@@ -16,6 +17,7 @@ using SCORE = std::vector<std::pair<std::string, double>>;
 using RESULT = std::vector<
     std::tuple<
         std::string,
+        double, SCORE,
         double, SCORE,
         double, SCORE,
         double, SCORE,
@@ -103,6 +105,19 @@ double sumScores(const SCORE &scores){
     return sum;
 }
 
+
+void multiplyIdf(SCORE &scores, const JSON &vocabEntries) {
+    auto [min_it, max_it] = std::minmax_element(scores.begin(), scores.end(),
+                                            [](const auto &a, const auto &b) {
+                                                return a.second < b.second;
+                                            });
+    const double min_val = min_it->second;
+    const double max_val = max_it->second;
+        
+    for (auto &entry : scores) {
+        entry.second = ((entry.second - min_val) * vocabEntries[entry.first]["idf"].get<double>()) / (max_val - min_val);
+    }
+}
 
 auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docEntries, 
                const double &totalVocabCount, const double &totalDocCount, 
@@ -204,7 +219,8 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
                            wapmi_alpha_1_smoothing_laplace, wapmi_alpha_2_smoothing_laplace, wapmi_alpha_3_smoothing_laplace,
                            wappmi_alpha_1, wappmi_alpha_2, wappmi_alpha_3,
                            wappmi_alpha_1_delta, wappmi_alpha_2_delta, wappmi_alpha_3_delta,
-                           wappmi_alpha_1_laplace, wappmi_alpha_2_laplace, wappmi_alpha_3_laplace);
+                           wappmi_alpha_1_laplace, wappmi_alpha_2_laplace, wappmi_alpha_3_laplace,
+                           npmi);
 }
 
 
@@ -244,7 +260,8 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
               wappmi_alpha_3_delta_scores,
               wappmi_alpha_1_laplace_scores,
               wappmi_alpha_2_laplace_scores,
-              wappmi_alpha_3_laplace_scores;
+              wappmi_alpha_3_laplace_scores,
+              npmi_idf_scores;
 
         /* Loop through W_j */
         for (const auto &[secondLevelVocab, secondLevelValue] : vocabEntries.items()){
@@ -271,8 +288,9 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                              wappmi_alpha_3_delta_score,
                              wappmi_alpha_1_laplace_score,
                              wappmi_alpha_2_laplace_score,
-                             wappmi_alpha_3_laplace_score] = calScores(firstLevelValue, secondLevelValue, docEntries, 
-                                                                        totalVocabCount, totalDocCount, totalWordCount);
+                             wappmi_alpha_3_laplace_score,
+                             npmi_idf_score] = calScores(firstLevelValue, secondLevelValue, docEntries, 
+                                                         totalVocabCount, totalDocCount, totalWordCount);
                        
                 pmi_laplace_scores.emplace_back(secondLevelVocab, pmi_laplace_score);
                 pmi_smoothing_laplace_scores.emplace_back(secondLevelVocab, pmi_smoothing_laplace_score);
@@ -296,9 +314,13 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                 wappmi_alpha_1_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_1_laplace_score);
                 wappmi_alpha_2_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_2_laplace_score);
                 wappmi_alpha_3_laplace_scores.emplace_back(secondLevelVocab, wappmi_alpha_3_laplace_score);
+                npmi_idf_scores.emplace_back(secondLevelVocab, npmi_idf_score);
             }
         }
 
+
+        /* Test IDF NPMI */
+        multiplyIdf(npmi_idf_scores, vocabEntries);
 
         /* Sort the words */
         std::sort(pmi_laplace_scores.begin(), pmi_laplace_scores.end(), comparePairs);
@@ -323,6 +345,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         std::sort(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.end(), comparePairs);
         std::sort(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.end(), comparePairs);
         std::sort(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.end(), comparePairs);
+        std::sort(npmi_idf_scores.begin(), npmi_idf_scores.end(), comparePairs);
 
         /* Get Top K Words */ 
         const SCORE pmi_laplace_firstK(pmi_laplace_scores.begin(), pmi_laplace_scores.begin() + topK);
@@ -347,6 +370,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         const SCORE wappmi_alpha_1_laplace_firstK(wappmi_alpha_1_laplace_scores.begin(), wappmi_alpha_1_laplace_scores.begin() + topK);
         const SCORE wappmi_alpha_2_laplace_firstK(wappmi_alpha_2_laplace_scores.begin(), wappmi_alpha_2_laplace_scores.begin() + topK);
         const SCORE wappmi_alpha_3_laplace_firstK(wappmi_alpha_3_laplace_scores.begin(), wappmi_alpha_3_laplace_scores.begin() + topK);
+        const SCORE npmi_idf_firstK(npmi_idf_scores.begin(), npmi_idf_scores.begin() + topK);
 
         /* Calculate total Score */
         const auto total_pmi_laplace_score = sumScores(pmi_laplace_scores);
@@ -371,6 +395,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         const auto total_wappmi_alpha_1_laplace_score = sumScores(wappmi_alpha_1_laplace_scores);
         const auto total_wappmi_alpha_2_laplace_score = sumScores(wappmi_alpha_2_laplace_scores);
         const auto total_wappmi_alpha_3_laplace_score = sumScores(wappmi_alpha_3_laplace_scores);
+        const auto total_npmi_idf_score = sumScores(npmi_idf_scores);
 
         /* Append Results */
         {
@@ -398,7 +423,8 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                                  total_wappmi_alpha_3_delta_score, wappmi_alpha_3_delta_firstK,
                                  total_wappmi_alpha_1_laplace_score, wappmi_alpha_1_laplace_firstK,
                                  total_wappmi_alpha_2_laplace_score, wappmi_alpha_2_laplace_firstK,
-                                 total_wappmi_alpha_3_laplace_score, wappmi_alpha_3_laplace_firstK);
+                                 total_wappmi_alpha_3_laplace_score, wappmi_alpha_3_laplace_firstK,
+                                 total_npmi_idf_score, npmi_idf_firstK);
         }
         progress++;
     }
@@ -536,6 +562,9 @@ auto createJson(const RESULT &results) {
 
         entry["total_wappmi_alpha_3_laplace_score"] = std::get<43>(firstLevelTuple);
         entry["wappmi_alpha_3_laplace_candidate"] = createCandidateJson(std::get<44>(firstLevelTuple));
+
+        entry["total_npmi_idf_score"] = std::get<45>(firstLevelTuple);
+        entry["npmi_idf_candidate"] = createCandidateJson(std::get<46>(firstLevelTuple));
 
         dataToWrite.emplace_back(std::move(entry));
     }

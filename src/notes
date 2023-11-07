@@ -3,4 +3,13 @@
 3. clean code, factors
 4. fix amazon preproc
 5. fix packages and directories
+6. fix french news white space problem
 https://www.jair.org/index.php/jair/article/view/10640/25440
+
+presentation notes:
+1. Tokenization
+2. NPMI scores
+3. Infrequent words high score
+4. Laplace helps?
+5. Discounting Factor
+6.

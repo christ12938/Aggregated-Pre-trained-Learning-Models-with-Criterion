@@ -6,8 +6,14 @@ import pandas as pd
 from itertools import permutations, combinations
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import CRITERIA_LIST
-from algorithms import calculate_info
 
+def calculate_info(vocab_info_dict: dict, words: list):
+    result_doc = set()
+    result_word = 0
+    for word in words:
+        result_doc.update(vocab_info_dict[word]['id'].keys())
+        result_word += vocab_info_dict[word]['count']
+    return len(result_doc), result_word
 
 def calculate_pmi(p_i, p_j, p_ij):
     return math.log(p_ij / (p_i * p_j))
@@ -69,37 +75,36 @@ def evaluate_performance(vocab_info_df: pd.DataFrame, scores_info_df: pd.DataFra
     vocab_info_dict = vocab_info_df.set_index('vocab').T.to_dict()
     scores_info_dict = scores_info_df.set_index('vocab').T.to_dict()
     doc_info_dict = doc_info_df.set_index('id')['length'].to_dict()
-    
+    result_dict = result_df.set_index('seed')['words'].to_dict()
+
     total_vocab_count = len(vocab_info_dict)
     total_doc_count = len(doc_info_dict)
-    total_word_count = self.vocab_info_df['count'].sum()
+    total_word_count = vocab_info_df['count'].sum()
 
     result_scores = []
     result_subset_scores = []
 
     for seed, words in tqdm(result_dict.items(), desc=f"Evaluating Performance for {dataset} {measure}"):
-        inner_result_scores = []
-        inner_result_subset_scores = []
         
         total_vocab_count_subset = len(words[:top_k])
         total_doc_count_subset, total_word_count_subset = calculate_info(vocab_info_dict=vocab_info_dict, words=words[:top_k])
 
-        inner_result_scores.append(calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict,
+        inner_result_scores = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict,
                                                             words=words[:top_k], total_vocab_count=total_vocab_count,
                                                             total_doc_count=total_doc_count, total_word_count=total_word_count,
-                                                            measure=self.measure))
-        inner_result_subset_scores.append(calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict,
+                                                            measure=measure)
+        inner_result_subset_scores = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict,
                                                             words=words[:top_k], total_vocab_count=total_vocab_count_subset,
                                                             total_doc_count=total_doc_count_subset, total_word_count=total_word_count_subset,
-                                                            measure=self.measure))
-        result_scores.append(sum(y for x, y in inner_result_scores) / len(words[:top_k]))
-        result_subset_scores.append(sum(y for x, y in inner_result_subset_scores) / len(words[:top_k]))
+                                                            measure=measure)
+        result_scores.append(sum(y for x, y in inner_result_scores) / len(inner_result_scores))
+        result_subset_scores.append(sum(y for x, y in inner_result_subset_scores) / len(inner_result_subset_scores))
 
     result_score = sum(result_scores) / len(result_scores) 
     result_subset_score =  sum(result_subset_scores) / len(result_subset_scores)
-    print(f"Mean {measure} for {dataset} is {result_score}")
-    print(f"Mean Subset {measure} for {dataset} is {result_subset_score}")
-
+    print(f"Mean {measure} for {dataset} is {result_score:.3g}")
+    print(f"Mean Subset {measure} for {dataset} is {result_subset_score:.3g}")
+    print()
 
 def calculate_score_per_seed(vocab_info_dict: dict, doc_info_dict: dict, words: list, total_vocab_count: int, 
                              total_doc_count: int, total_word_count: int, measure: str):
@@ -190,125 +195,197 @@ if __name__ == '__main__':
         scidocs_bert_base_result_save_path = "result_data/scidocs_result_bert_base_uncased.pkl"
         scidocs_scibert_result_save_path = "result_data/scidocs_result_scibert_uncased.pkl"
         scidocs_flaubert_result_save_path = "result_data/scidocs_result_flaubert_uncased.pkl"
-        scidocs_combined_npmi_result_save_path = f"result_data/scidocs_result_combined_{outer_criteria}.pkl"
+        scidocs_seetopic_result_save_path = f"result_data/scidocs_result_seetopic.pkl"
 
         amazon_bert_base_result_save_path = "result_data/amazon_result_bert_base_uncased.pkl"
         amazon_scibert_result_save_path = "result_data/amazon_result_scibert_uncased.pkl"
         amazon_flaubert_result_save_path = "result_data/amazon_result_flaubert_uncased.pkl"
-        amazon_combined_npmi_result_save_path = "result_data/amazon_result_combined_{outer_criteria}.pkl"
+        amazon_seetopic_result_save_path = f"result_data/amazon_result_seetopic.pkl"
 
         french_bert_base_result_save_path = "result_data/french_result_bert_base_uncased.pkl"
         french_scibert_result_save_path = "result_data/french_result_scibert_uncased.pkl"
         french_flaubert_result_save_path = "result_data/french_result_flaubert_uncased.pkl"
-        french_combined_npmi_result_save_path = "result_data/french_result_combined_{outer_criteria}.pkl"
+        french_seetopic_result_save_path = f"result_data/french_result_seetopic.pkl"
 
         merged_bert_base_result_save_path = "result_data/merged_result_bert_base_uncased.pkl"
         merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
         merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
-        merged_combined_npmi_result_save_path = "result_data/merged_result_combined_{outer_criteria}.pkl"
+        merged_seetopic_result_save_path = f"result_data/merged_result_seetopic.pkl"
+       
         
-        for inner_criteria in CRITERIA_LIST:
+        # Scidocs
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_bert_base_result_save_path), measure=outer_criteria,
+                                   top_k=top_k,
+                                   dataset='Scidocs bert Base')
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_scibert_result_save_path), measure=outer_criteria,
+                                   top_k=top_k,
+                                   dataset='Scidocs Scibert')
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_flaubert_result_save_path), measure=outer_criteria,
+                                   top_k=top_k,
+                                   dataset='Scidocs Flaubert')
 
-            # Scidocs
-            evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
-                                scores_info_df=pd.read_pickle(scidocs_scores_path),
-                                doc_info_df=pd.read_pickle(scidocs_doc_path),
-                                       result_df=pd.read_pickle(scidocs_bert_base_result_save_path), measure=inner_criteria,
-                                       top_k=top_k,
-                                       dataset='Scidocs')
-            evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
-                                scores_info_df=pd.read_pickle(scidocs_scores_path),
-                                doc_info_df=pd.read_pickle(scidocs_doc_path),
-                                       result_df=pd.read_pickle(scidocs_scibert_result_save_path), measure=inner_criteria,
-                                       top_k=top_k,
-                                       dataset='Scidocs')
-            evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
-                                scores_info_df=pd.read_pickle(scidocs_scores_path),
-                                doc_info_df=pd.read_pickle(scidocs_doc_path),
-                                       result_df=pd.read_pickle(scidocs_flaubert_result_save_path), measure=inner_criteria,
-                                       top_k=top_k,
-                                       dataset='Scidocs')
-            evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
-                                scores_info_df=pd.read_pickle(scidocs_scores_path),
-                                doc_info_df=pd.read_pickle(scidocs_doc_path),
-                                       result_df=pd.read_pickle(scidocs_combined_npmi_result_save_path), measure=inner_criteria,
-                                       top_k=top_k,
-                                       dataset='Scidocs')
-            
-            # Amazon
-            evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
-                                scores_info_df=pd.read_pickle(amazon_scores_path),
-                                doc_info_df=pd.read_pickle(amazon_doc_path),
-                                       result_df=pd.read_pickle(amazon_bert_base_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Amazon')
-            evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
-                                scores_info_df=pd.read_pickle(amazon_scores_path),
-                                doc_info_df=pd.read_pickle(amazon_doc_path),
-                                       result_df=pd.read_pickle(amazon_scibert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Amazon')
-            evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
-                                scores_info_df=pd.read_pickle(amazon_scores_path),
-                                doc_info_df=pd.read_pickle(amazon_doc_path),
-                                       result_df=pd.read_pickle(amazon_flaubert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Amazon')
-            evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
-                                scores_info_df=pd.read_pickle(amazon_scores_path),
-                                doc_info_df=pd.read_pickle(amazon_doc_path),
-                                       result_df=pd.read_pickle(amazon_combined_npmi_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Amazon')
+        # Amazon
 
-            # French News
-            evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
-                                scores_info_df=pd.read_pickle(french_scores_path),
-                                doc_info_df=pd.read_pickle(french_doc_path),
-                                       result_df=pd.read_pickle(french_bert_base_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='French News')
-            evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
-                                scores_info_df=pd.read_pickle(french_scores_path),
-                                doc_info_df=pd.read_pickle(french_doc_path),
-                                       result_df=pd.read_pickle(french_scibert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='French News')
-            evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
-                                scores_info_df=pd.read_pickle(french_scores_path),
-                                doc_info_df=pd.read_pickle(french_doc_path),
-                                       result_df=pd.read_pickle(french_flaubert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='French News')
-            evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
-                                scores_info_df=pd.read_pickle(french_scores_path),
-                                doc_info_df=pd.read_pickle(french_doc_path),
-                                       result_df=pd.read_pickle(french_combined_npmi_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='French News')
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_bert_base_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Amazon Bert Base')
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_scibert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Amazon Scibert')
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_flaubert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Amazon Flaubert')
 
-            # Merged News
-            evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
-                                scores_info_df=pd.read_pickle(merged_scores_path),
-                                doc_info_df=pd.read_pickle(merged_doc_path),
-                                       result_df=pd.read_pickle(merged_bert_base_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Merged')
-            evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
-                                scores_info_df=pd.read_pickle(merged_scores_path),
-                                doc_info_df=pd.read_pickle(merged_doc_path),
-                                       result_df=pd.read_pickle(merged_scibert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Merged')
-            evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
-                                scores_info_df=pd.read_pickle(merged_scores_path),
-                                doc_info_df=pd.read_pickle(merged_doc_path),
-                                       result_df=pd.read_pickle(merged_flaubert_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Merged')
-            evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
-                                scores_info_df=pd.read_pickle(merged_scores_path),
-                                doc_info_df=pd.read_pickle(merged_doc_path),
-                                       result_df=pd.read_pickle(merged_combined_npmi_result_save_path), measure=inner_criteria, 
-                                       top_k=top_k,
-                                       dataset='Merged')
+        # French News
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_bert_base_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='French News Bert Base')
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_scibert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='French News Scibert')
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_flaubert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='French News Flaubert')
+        # Merged
+
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_bert_base_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Merged Bert Base')
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_scibert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Merged Scibert')
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_flaubert_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Merged Flaubert')
+
+        # Seetopic
+
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_seetopic_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Scidocs Seetopic')
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_seetopic_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Amazon Seetopic')
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_seetopic_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='French News Seetopic')
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_seetopic_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset='Merged Seetopic')
+
+        #for inner_criteria in CRITERIA_LIST:
+        inner_criteria = 'npmi'
+
+        scidocs_combined_npmi_result_save_path = f"result_data/scidocs_result_combined_{inner_criteria}.pkl"
+        amazon_combined_npmi_result_save_path = f"result_data/amazon_result_combined_{inner_criteria}.pkl"
+        french_combined_npmi_result_save_path = f"result_data/french_result_combined_{inner_criteria}.pkl"
+        merged_combined_npmi_result_save_path = f"result_data/merged_result_combined_{inner_criteria}.pkl"
+
+        scidocs_combined_scores_embeds_npmi_result_save_path = f"result_data/scidocs_result_combined_scores_embeds_{inner_criteria}.pkl"
+        amazon_combined_scores_embeds_npmi_result_save_path = f"result_data/amazon_result_combined_scores_embeds_{inner_criteria}.pkl"
+        french_combined_scores_embeds_npmi_result_save_path = f"result_data/french_result_combined_scores_embeds_{inner_criteria}.pkl"
+        merged_combined_scores_embeds_npmi_result_save_path = f"result_data/merged_result_combined_scores_embeds_{inner_criteria}.pkl"
+
+        # Scidocs
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_combined_npmi_result_save_path), measure=outer_criteria,
+                                   top_k=top_k,
+                                   dataset=f'Scidocs Combined {inner_criteria}')
+        evaluate_performance(vocab_info_df=pd.read_pickle(scidocs_vocab_path),
+                            scores_info_df=pd.read_pickle(scidocs_scores_path),
+                            doc_info_df=pd.read_pickle(scidocs_doc_path),
+                                   result_df=pd.read_pickle(scidocs_combined_scores_embeds_npmi_result_save_path), measure=outer_criteria,
+                                   top_k=top_k,
+                                   dataset=f'Scidocs Combined Scores Embeds {inner_criteria}')
+        
+        # Amazon
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_combined_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'Amazon Combined {inner_criteria}')
+        evaluate_performance(vocab_info_df=pd.read_pickle(amazon_vocab_path),
+                            scores_info_df=pd.read_pickle(amazon_scores_path),
+                            doc_info_df=pd.read_pickle(amazon_doc_path),
+                                   result_df=pd.read_pickle(amazon_combined_scores_embeds_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'Amazon Combined Scores Embeds {inner_criteria}')
+
+        # French News
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_combined_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'French News Combined {inner_criteria}')
+        evaluate_performance(vocab_info_df=pd.read_pickle(french_vocab_path),
+                            scores_info_df=pd.read_pickle(french_scores_path),
+                            doc_info_df=pd.read_pickle(french_doc_path),
+                                   result_df=pd.read_pickle(french_combined_scores_embeds_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'French News Combined Scores Embeds {inner_criteria}')
+
+        # Merged
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_combined_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'Merged Combined {inner_criteria}')
+        evaluate_performance(vocab_info_df=pd.read_pickle(merged_vocab_path),
+                            scores_info_df=pd.read_pickle(merged_scores_path),
+                            doc_info_df=pd.read_pickle(merged_doc_path),
+                                   result_df=pd.read_pickle(merged_combined_scores_embeds_npmi_result_save_path), measure=outer_criteria, 
+                                   top_k=top_k,
+                                   dataset=f'Merged Combined Scores Embeds {inner_criteria}')

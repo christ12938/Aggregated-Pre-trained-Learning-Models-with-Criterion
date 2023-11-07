@@ -16,19 +16,15 @@ def get_scidocs_seeds():
         'neoplasms (cancer)',
         'neurological disorders',
     ]
-    """
-    seeds = ["nanotechnology", "pharmaceutics", "audiology", "viromics", "biophysics", "vaccinology", "cholera",
-             "chikungunya", "dysentery"]
-    """
     return seeds
 
 
 def get_amazon_seeds():
     seeds = ['apps for android',
-             'books',
+             'books and readings',
              'cds and vinyl',
              'clothing, shoes and jewelry',
-             'electronics',
+             'electronic devices',
              'health and personal care',
              'home and kitchen',
              'movies and tv',
@@ -37,47 +33,19 @@ def get_amazon_seeds():
     return seeds
 
 
-def get_twitter_seeds():
-    """
-    seeds = ['food',
-             'shop and service',
-             'travel and transport',
-             'college and university',
-             'nightlife spot',
-             'residence',
-             'outdoors and recreation',
-             'arts and entertainment',
-             'professional and other places']
-             """
-    seeds = ["cryptocurrency", "veganism", "freelancing", "hiking", "quilting", "upcycling", "e-sports",
-             "motorcycling", "paranormal"]
-    return seeds
-
-
-def get_legal_seeds():
-    """
-    seeds = ['federalism', 'bioethics', 'misdemeanor', 'alimony', 'desegregation', 'cybercrime', 'doping',
-             'malpractice']
-             """
-    seeds = ["misdemeanor", "desegregation", "cybercrime", "replevin", "usury", "venire", "arraignment", "codicil",
-             "vagrancy", 'federalism']
-    return seeds
-
-
 def get_french_seeds():
     seeds = ["histoire et révolution", "faune et flore", "énergies renouvelables", "élections municipales",
              "littérature contemporaine", "écoles élémentaires", "pâtisseries françaises", "châteaux historiques"]
     topics_fr = [
-        "changement climatique",
-        "éducation nationale",
+        #"conflits armés",
+#        "conflit israélo-arabe",
+        "israël et arabe",
+        "énergies renouvelables",
         "justice pénale",
-        "technologies émergentes",
-        "affaires étrangères",
-        "conflits armés",
-        "littérature contemporaine",
-        "arts visuels",
-        "jeux vidéo",
-        "voyages spatiaux"
-                ]
+        "élections municipales",
+        "voiture autonome",
+        "progrès médicaux",
+        "innovation technologique",
+        ]
 
     return topics_fr
