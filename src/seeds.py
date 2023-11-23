@@ -23,7 +23,7 @@ def get_amazon_seeds():
     seeds = ['apps for android',
              'books and readings',
              'cds and vinyl',
-             'clothing, shoes and jewelry',
+             'clothing shoes and jewelry',
              'electronic devices',
              'health and personal care',
              'home and kitchen',
@@ -39,13 +39,13 @@ def get_french_seeds():
     topics_fr = [
         #"conflits armés",
 #        "conflit israélo-arabe",
-        "israël et arabe",
-        "énergies renouvelables",
-        "justice pénale",
-        "élections municipales",
-        "voiture autonome",
-        "progrès médicaux",
-        "innovation technologique",
+        'israël et arabe',
+        'énergies renouvelables',
+        'justice pénale',
+        'élections municipales',
+        'voiture autonome',
+        'progrès médicaux',
+        'innovation technologique',
         ]
 
     return topics_fr

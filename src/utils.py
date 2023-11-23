@@ -5,19 +5,21 @@ import pandas as pd
 import random
 
 MAX_WORD_LIMIT = 510
-#CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace',
-#                 'ppmi', 'ppmi_delta', 'ppmi_laplace', 
-#                 'npmi', 'npmi_laplace',
-#                 'wapmi_alpha_1_laplace', 'wapmi_alpha_1_smoothing_laplace',
-#                 'wapmi_alpha_2_laplace', 'wapmi_alpha_2_smoothing_laplace',
-#                 'wapmi_alpha_3_laplace', 'wapmi_alpha_3_smoothing_laplace',
-#                 'wappmi_alpha_1', 'wappmi_alpha_1_delta', 'wappmi_alpha_1_laplace',
-#                 'wappmi_alpha_2', 'wappmi_alpha_2_delta', 'wappmi_alpha_2_laplace',
-#                 'wappmi_alpha_3', 'wappmi_alpha_3_delta', 'wappmi_alpha_3_laplace']
+CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace', 'pmi_laplace_delta'
+                 'ppmi',
+                 'npmi', 'wapmi_alpha_1_laplace', 'npmi_idf']
+METRIC_LIST = ['pmi_laplace', 'pmi_smoothing_laplace', 'pmi_laplace_delta',
+               'ppmi', 
+               'npmi', 'wapmi_alpha_1_laplace', 'lcp_laplace']
+
+#CRITERIA_LIST = ['pmi_laplace',
+#                 'ppmi',
+#                 'npmi', 
+#                 'npmi_idf']
 #
-CRITERIA_LIST = ['pmi_laplace', 
-                 'ppmi', 
-                 'npmi']
+#METRIC_LIST = ['pmi_laplace',
+#                 'ppmi',
+#                 'npmi']
 
 def clean_sentence(sentence: str, regex_rules: str):
     cleaned_sentence = re.sub(regex_rules, '', sentence)

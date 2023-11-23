@@ -128,7 +128,7 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
 
     /* Declare Scores */
     double pmi = 0.0, pmi_laplace, pmi_smoothing_laplace;
-    double ppmi = 0.0, ppmi_delta = 0.0, ppmi_laplace;
+    double ppmi = 0.0, pmi_laplace_delta, ppmi_laplace;
     double npmi = -1.0, npmi_laplace;
     double wapmi_alpha_1_laplace, wapmi_alpha_1_smoothing_laplace;
     double wapmi_alpha_2_laplace, wapmi_alpha_2_smoothing_laplace;
@@ -166,7 +166,6 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
         /* Calculate simple scores */
         pmi = log2(p_ij / (p_i * p_j)); 
         ppmi = std::max(pmi, 0.0);
-        ppmi_delta = delta * ppmi;
         npmi = -(pmi / log2(p_ij));
         wappmi_alpha_1 = p_ij * ppmi;
         wappmi_alpha_1_delta = delta * wappmi_alpha_1;
@@ -175,6 +174,7 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
 
     /* Calculate laplace simple scores */ 
     pmi_laplace = log2(p_ij_laplace / (p_i_laplace * p_j_laplace)); 
+    pmi_laplace_delta = delta * pmi_laplace;
     /* k = 3 */
     pmi_smoothing_laplace = log2((p_ij_laplace * p_ij_laplace * p_ij_laplace) / (p_i_laplace * p_j_laplace));
     ppmi_laplace = std::max(pmi_laplace, 0.0);
@@ -201,8 +201,8 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
     if (intersectingKeys.size()) {
         wappmi_alpha_2 = alpha_2 * p_w_i_d_i * ppmi;
         wappmi_alpha_3 = alpha_3 * p_w_i_d_i * ppmi;
-        wappmi_alpha_2_delta = alpha_2 * p_w_i_d_i * ppmi_delta;
-        wappmi_alpha_3_delta = alpha_3 * p_w_i_d_i * ppmi_delta;
+        wappmi_alpha_2_delta = alpha_2 * p_w_i_d_i * pmi_laplace_delta;
+        wappmi_alpha_3_delta = alpha_3 * p_w_i_d_i * pmi_laplace_delta;
     }
 
     wapmi_alpha_2_laplace = alpha_2 * p_w_i_d_i_laplace * pmi_laplace;
@@ -213,7 +213,7 @@ auto calScores(const JSON &firstLevel, const JSON &secondLevel, const JSON &docE
     wappmi_alpha_3_laplace = alpha_3 * p_w_i_d_i_laplace * ppmi_laplace;
 
     return std::make_tuple(pmi_laplace, pmi_smoothing_laplace,
-                           ppmi, ppmi_delta, ppmi_laplace, 
+                           ppmi, pmi_laplace_delta, ppmi_laplace, 
                            npmi, npmi_laplace,
                            wapmi_alpha_1_laplace, wapmi_alpha_2_laplace, wapmi_alpha_3_laplace,
                            wapmi_alpha_1_smoothing_laplace, wapmi_alpha_2_smoothing_laplace, wapmi_alpha_3_smoothing_laplace,
@@ -242,7 +242,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         SCORE pmi_laplace_scores,
               pmi_smoothing_laplace_scores,
               ppmi_scores,
-              ppmi_delta_scores,
+              pmi_laplace_delta_scores,
               ppmi_laplace_scores,
               npmi_scores,
               npmi_laplace_scores,
@@ -270,7 +270,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                 const auto &[pmi_laplace_score,
                              pmi_smoothing_laplace_score,
                              ppmi_score,
-                             ppmi_delta_score,
+                             pmi_laplace_delta_score,
                              ppmi_laplace_score,
                              npmi_score,
                              npmi_laplace_score,
@@ -295,7 +295,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                 pmi_laplace_scores.emplace_back(secondLevelVocab, pmi_laplace_score);
                 pmi_smoothing_laplace_scores.emplace_back(secondLevelVocab, pmi_smoothing_laplace_score);
                 ppmi_scores.emplace_back(secondLevelVocab, ppmi_score);
-                ppmi_delta_scores.emplace_back(secondLevelVocab, ppmi_delta_score);
+                pmi_laplace_delta_scores.emplace_back(secondLevelVocab, pmi_laplace_delta_score);
                 ppmi_laplace_scores.emplace_back(secondLevelVocab, ppmi_laplace_score);
                 npmi_scores.emplace_back(secondLevelVocab, npmi_score);
                 npmi_laplace_scores.emplace_back(secondLevelVocab, npmi_laplace_score);
@@ -326,7 +326,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         std::sort(pmi_laplace_scores.begin(), pmi_laplace_scores.end(), comparePairs);
         std::sort(pmi_smoothing_laplace_scores.begin(), pmi_smoothing_laplace_scores.end(), comparePairs);
         std::sort(ppmi_scores.begin(), ppmi_scores.end(), comparePairs);
-        std::sort(ppmi_delta_scores.begin(), ppmi_delta_scores.end(), comparePairs);
+        std::sort(pmi_laplace_delta_scores.begin(), pmi_laplace_delta_scores.end(), comparePairs);
         std::sort(ppmi_laplace_scores.begin(), ppmi_laplace_scores.end(), comparePairs);
         std::sort(npmi_scores.begin(), npmi_scores.end(), comparePairs);
         std::sort(npmi_laplace_scores.begin(), npmi_laplace_scores.end(), comparePairs);
@@ -351,7 +351,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         const SCORE pmi_laplace_firstK(pmi_laplace_scores.begin(), pmi_laplace_scores.begin() + topK);
         const SCORE pmi_smoothing_laplace_firstK(pmi_smoothing_laplace_scores.begin(), pmi_smoothing_laplace_scores.begin() + topK);
         const SCORE ppmi_firstK(ppmi_scores.begin(), ppmi_scores.begin() + topK);
-        const SCORE ppmi_delta_firstK(ppmi_delta_scores.begin(), ppmi_delta_scores.begin() + topK);
+        const SCORE pmi_laplace_delta_firstK(pmi_laplace_delta_scores.begin(), pmi_laplace_delta_scores.begin() + topK);
         const SCORE ppmi_laplace_firstK(ppmi_laplace_scores.begin(), ppmi_laplace_scores.begin() + topK);
         const SCORE npmi_firstK(npmi_scores.begin(), npmi_scores.begin() + topK);
         const SCORE npmi_laplace_firstK(npmi_laplace_scores.begin(), npmi_laplace_scores.begin() + topK);
@@ -376,7 +376,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
         const auto total_pmi_laplace_score = sumScores(pmi_laplace_scores);
         const auto total_pmi_smoothing_laplace_score = sumScores(pmi_smoothing_laplace_scores);
         const auto total_ppmi_score = sumScores(ppmi_scores);
-        const auto total_ppmi_delta_score = sumScores(ppmi_delta_scores);
+        const auto total_pmi_laplace_delta_score = sumScores(pmi_laplace_delta_scores);
         const auto total_ppmi_laplace_score = sumScores(ppmi_laplace_scores);
         const auto total_npmi_score = sumScores(npmi_scores);
         const auto total_npmi_laplace_score = sumScores(npmi_laplace_scores);
@@ -405,7 +405,7 @@ void processBatch(const int start, const int end, RESULT &results, const JSON &v
                                  total_pmi_laplace_score, pmi_laplace_firstK,
                                  total_pmi_smoothing_laplace_score, pmi_smoothing_laplace_firstK,
                                  total_ppmi_score, ppmi_firstK,
-                                 total_ppmi_delta_score, ppmi_delta_firstK,
+                                 total_pmi_laplace_delta_score, pmi_laplace_delta_firstK,
                                  total_ppmi_laplace_score, ppmi_laplace_firstK,
                                  total_npmi_score, npmi_firstK,
                                  total_npmi_laplace_score, npmi_laplace_firstK,
@@ -506,8 +506,8 @@ auto createJson(const RESULT &results) {
         entry["total_ppmi_score"] = std::get<5>(firstLevelTuple);
         entry["ppmi_candidate"] = createCandidateJson(std::get<6>(firstLevelTuple));
 
-        entry["total_ppmi_delta_score"] = std::get<7>(firstLevelTuple);
-        entry["ppmi_delta_candidate"] = createCandidateJson(std::get<8>(firstLevelTuple));
+        entry["total_pmi_laplace_delta_score"] = std::get<7>(firstLevelTuple);
+        entry["pmi_laplace_delta_candidate"] = createCandidateJson(std::get<8>(firstLevelTuple));
 
         entry["total_ppmi_laplace_score"] = std::get<9>(firstLevelTuple);
         entry["ppmi_laplace_candidate"] = createCandidateJson(std::get<10>(firstLevelTuple));

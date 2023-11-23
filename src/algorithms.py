@@ -59,6 +59,7 @@ class CombineCriteria:
         self.model_list = model_list
         self.result_dict = None
         self.decision_dict = None
+        self.tf_idf = tf_idf
         self.open_files(vocab_info_path=vocab_info_path, doc_info_path=doc_info_path, categorized_words_paths=categorized_words_paths)
     
 
@@ -88,7 +89,7 @@ class CombineCriteria:
         self.result_dict = {}
         self.decision_dict = {}
 
-        for seed in tqdm(seeds, desc=f"Calculating Highest {self.top_k} {self.criteria} for Each Seed"):
+        for seed in tqdm(seeds, desc=f"Calculating Highest {self.top_k} {self.criteria} {'with IDF' if self.tf_idf else ''} for Each Seed"):
             seed_scores = np.zeros(len(self.categorized_words_dicts))
             for idx, result in enumerate(self.categorized_words_dicts):
                 total_doc_count, total_word_count = calculate_info(vocab_info_dict, result[seed][:top_k]) 
@@ -96,11 +97,14 @@ class CombineCriteria:
                         words=result[seed][:top_k], total_vocab_count=top_k, 
                                                             total_doc_count=total_doc_count, total_word_count=total_word_count, 
                                                             measure=self.criteria)
-                if tf_idf:
-                    tupled_seed_scores = sum_based_on_first(tuple_list=temp)
-                    min_val = min(tupled_seed_scores, key=lambda x: x[1])
-                    max_val = max(tupled_seed_scores, key=lambda x: x[1])
-                    scaled_seed_scores = [(x[1] - min_val) / (max_val - min_val) for x in tupled_seed_scores]
+                if self.tf_idf:
+                    tupled_seed_scores = self.sum_based_on_first(tuples_list=temp)
+                    min_val = min(tupled_seed_scores, key=lambda x: x[1])[1]
+                    max_val = max(tupled_seed_scores, key=lambda x: x[1])[1]
+                    if min_val == max_val:
+                        scaled_seed_scores = [1] * len(tupled_seed_scores)
+                    else:
+                        scaled_seed_scores = [(x[1] - min_val) / (max_val - min_val) for x in tupled_seed_scores]
                     idf_scores = [vocab_info_dict[e[0]]['standardized_idf'] for e in tupled_seed_scores]
                     adjusted_scores = [x1 * x2 for x1, x2 in zip(scaled_seed_scores, idf_scores)]
                     seed_scores[idx] = sum(adjusted_scores) / len(adjusted_scores)
@@ -139,6 +143,7 @@ class CombineScoresEmbeddings:
         self.categorized_words_dict = None
         self.result_dict = None
         self.discard_subtopic = discard_subtopic
+        self.tf_idf = tf_idf
         self.open_files(vocab_info_path=vocab_info_path, scores_info_path=scores_info_path, doc_info_path=doc_info_path, categorized_words_path=categorized_words_path)
     
 
@@ -176,16 +181,28 @@ class CombineScoresEmbeddings:
         scores_info_dict = self.scores_info_df.set_index('vocab').T.to_dict()
         self.result_dict = {}
 
-        for seed, words in tqdm(self.categorized_words_dict.items(), desc=f"Processing Highest {self.top_k} {self.criteria} for Each Seed"):
+        for seed, words in tqdm(self.categorized_words_dict.items(), desc=f"Processing Highest {self.top_k} {self.criteria} {'with IDF' if self.tf_idf else ''} for Each Seed"):
             result_words = []
             top_k_words = words[:top_k]            
             for word in top_k_words:
                 if self.discard_subtopic is False:
                     result_words.append(word)
                 result_words.extend([key for key, val in scores_info_dict[word][f'{self.criteria}_candidate'].items()])
+            # TEST 1
+#            result_words = list(set(result_words))
+#            total_doc_count, total_word_count = calculate_info(vocab_info_dict, result_words) 
+#            temp = calculate_score_per_seed(vocab_info_dict=vocab_info_dict, doc_info_dict=doc_info_dict, 
+#                    words=result_words, total_vocab_count=len(result_words), 
+#                                                        total_doc_count=total_doc_count, total_word_count=total_word_count, 
+#                                                        measure=self.criteria)
+#            summed_tuple = self.sum_based_on_first(tuples_list=temp) 
+#            sorted_tuple = sorted(summed_tuple, key=lambda x: x[1], reverse=True)
+#            self.result_dict[seed] = [x[0] for x in sorted_tuple]
+            # DEFAULT
             result_words = list(set(result_words)) 
             seed_scores = [scores_info_dict[e][f'total_{self.criteria}_score'] for e in result_words]
-            if tf_idf:
+            if self.tf_idf:
+                # Add Edge cases
                 seed_scores = [(x - min(seed_scores)) / (max(seed_scores) - min(seed_scores)) for x in seed_scores]
                 idf_scores = [vocab_info_dict[e]['standardized_idf'] for e in result_words]
                 seed_scores = [x1 * x2 for x1, x2 in zip(seed_scores, idf_scores)]
@@ -364,7 +381,7 @@ if __name__ == "__main__":
         merged_scibert_result_save_path = "result_data/merged_result_scibert_uncased.pkl"
         merged_flaubert_result_save_path = "result_data/merged_result_flaubert_uncased.pkl"
         merged_combined_result_save_path = f"result_data/merged_result_combined_{criteria}.pkl"
-        mered_combined_idf_result_save_path = f"result_data/merged_result_combined_idf_{criteria}.pkl"
+        merged_combined_idf_result_save_path = f"result_data/merged_result_combined_idf_{criteria}.pkl"
 
      
         # Combined NPMI method
@@ -419,18 +436,18 @@ if __name__ == "__main__":
                                           decision_save_path=scidocs_combined_decision_save_path)
         del scidocs_combined
 
-        scidocs_combined = CombineCriteria(vocab_info_path=scidocs_vocab_path,
-                                                doc_info_path=scidocs_doc_info_path,
-                                                categorized_words_paths=scidocs_words_paths, 
-                                                model_list=model_list,
-                                                criteria=criteria, 
-                                                top_k=top_k,
-                                                tf_idf=True)
-        scidocs_combined.combine_results()
-        scidocs_combined.save_result(result_save_path=scidocs_combined_idf_result_save_path,
-                                          decision_save_path=scidocs_combined_idf_decision_save_path)
-        del scidocs_combined
-
+#        scidocs_combined = CombineCriteria(vocab_info_path=scidocs_vocab_path,
+#                                                doc_info_path=scidocs_doc_info_path,
+#                                                categorized_words_paths=scidocs_words_paths, 
+#                                                model_list=model_list,
+#                                                criteria=criteria, 
+#                                                top_k=top_k,
+#                                                tf_idf=True)
+#        scidocs_combined.combine_results()
+#        scidocs_combined.save_result(result_save_path=scidocs_combined_idf_result_save_path,
+#                                          decision_save_path=scidocs_combined_idf_decision_save_path)
+#        del scidocs_combined
+#
         amazon_combined = CombineCriteria(vocab_info_path=amazon_vocab_path,
                                                doc_info_path=amazon_doc_info_path,
                                                categorized_words_paths=amazon_words_paths,
@@ -442,18 +459,18 @@ if __name__ == "__main__":
                                          decision_save_path=amazon_combined_decision_save_path)
         del amazon_combined
 
-        amazon_combined = CombineCriteria(vocab_info_path=amazon_vocab_path,
-                                               doc_info_path=amazon_doc_info_path,
-                                               categorized_words_paths=amazon_words_paths,
-                                               model_list=model_list,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        amazon_combined.combine_results()
-        amazon_combined.save_result(result_save_path=amazon_combined_idf_result_save_path,
-                                         decision_save_path=amazon_combined_idf_decision_save_path)
-        del amazon_combined
-
+#        amazon_combined = CombineCriteria(vocab_info_path=amazon_vocab_path,
+#                                               doc_info_path=amazon_doc_info_path,
+#                                               categorized_words_paths=amazon_words_paths,
+#                                               model_list=model_list,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        amazon_combined.combine_results()
+#        amazon_combined.save_result(result_save_path=amazon_combined_idf_result_save_path,
+#                                         decision_save_path=amazon_combined_idf_decision_save_path)
+#        del amazon_combined
+#
         french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
                                                doc_info_path=french_doc_info_path,
                                                categorized_words_paths=french_words_paths, 
@@ -464,19 +481,19 @@ if __name__ == "__main__":
         french_combined.save_result(result_save_path=french_combined_result_save_path,
                                          decision_save_path=french_combined_decision_save_path)
         del french_combined
-
-        french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
-                                               doc_info_path=french_doc_info_path,
-                                               categorized_words_paths=french_words_paths, 
-                                               model_list=model_list,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        french_combined.combine_results()
-        french_combined.save_result(result_save_path=french_combined_idf_result_save_path,
-                                         decision_save_path=french_combined_idf_decision_save_path)
-        del french_combined
-
+#
+#        french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
+#                                               doc_info_path=french_doc_info_path,
+#                                               categorized_words_paths=french_words_paths, 
+#                                               model_list=model_list,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        french_combined.combine_results()
+#        french_combined.save_result(result_save_path=french_combined_idf_result_save_path,
+#                                         decision_save_path=french_combined_idf_decision_save_path)
+#        del french_combined
+#
         merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
                                                doc_info_path=merged_doc_info_path,
                                                categorized_words_paths=merged_words_paths, 
@@ -487,19 +504,19 @@ if __name__ == "__main__":
         merged_combined.save_result(result_save_path=merged_combined_result_save_path, 
                                          decision_save_path=merged_combined_decision_save_path)
         del merged_combined
-
-        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
-                                               doc_info_path=merged_doc_info_path,
-                                               categorized_words_paths=merged_words_paths, 
-                                               model_list=model_list,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        merged_combined.combine_results()
-        merged_combined.save_result(result_save_path=merged_combined_idf_result_save_path, 
-                                         decision_save_path=merged_combined_idf_decision_save_path)
-        del merged_combined
-
+#
+#        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
+#                                               doc_info_path=merged_doc_info_path,
+#                                               categorized_words_paths=merged_words_paths, 
+#                                               model_list=model_list,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        merged_combined.combine_results()
+#        merged_combined.save_result(result_save_path=merged_combined_idf_result_save_path, 
+#                                         decision_save_path=merged_combined_idf_decision_save_path)
+#        del merged_combined
+#
 
         # Combied Scores Embeddings
         scidocs_scores_info_path = "data/scidocs_scores.pkl"
