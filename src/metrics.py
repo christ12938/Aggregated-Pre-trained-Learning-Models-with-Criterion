@@ -104,8 +104,6 @@ def calculate_wa(measure: str, vocab_info_dict: dict, doc_info_dict: dict, w_i: 
 def evaluate_performance(vocab_info_df: pd.DataFrame, scores_info_df: pd.DataFrame, doc_info_df: pd.DataFrame, 
                          result_df: pd.DataFrame, measure: str, top_k: int,
                          dataset: str):
-    if measure not in CRITERIA_LIST:
-        raise Exception(f"No measure named {measure}")
 
     vocab_info_dict = vocab_info_df.set_index('vocab').T.to_dict()
     scores_info_dict = scores_info_df.set_index('vocab').T.to_dict()
@@ -188,11 +186,11 @@ def calculate_score_per_seed(vocab_info_dict: dict, doc_info_dict: dict, words: 
             seed_score = calculate_pmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
         elif measure == 'pmi_smoothing_laplace':
             seed_score = calculate_pmi_smoothing(p_i=p_i, p_j=p_j, p_ij=p_ij)
-        elif measure == 'ppmi_delta':
-            seed_score = delta * calculate_ppmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
+        elif measure == 'pmi_laplace_delta':
+            seed_score = delta * calculate_pmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
         elif measure == 'ppmi':
             seed_score = calculate_ppmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
-        elif measure == 'npmi':
+        elif measure == 'npmi' or measure == 'npmi_idf':
             seed_score = calculate_npmi(p_i=p_i, p_j=p_j, p_ij=p_ij)
         elif measure == 'wapmi_alpha_1_laplace':
             seed_score = p_ij * calculate_pmi(p_i=p_i, p_j=p_j, p_ij=p_ij)

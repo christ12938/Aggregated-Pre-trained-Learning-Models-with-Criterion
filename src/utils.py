@@ -5,9 +5,9 @@ import pandas as pd
 import random
 
 MAX_WORD_LIMIT = 510
-CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace', 'pmi_laplace_delta'
+CRITERIA_LIST = ['pmi_laplace', 'pmi_smoothing_laplace', 'pmi_laplace_delta',
                  'ppmi',
-                 'npmi', 'wapmi_alpha_1_laplace', 'npmi_idf']
+                 'npmi']
 METRIC_LIST = ['pmi_laplace', 'pmi_smoothing_laplace', 'pmi_laplace_delta',
                'ppmi', 
                'npmi', 'wapmi_alpha_1_laplace', 'lcp_laplace']

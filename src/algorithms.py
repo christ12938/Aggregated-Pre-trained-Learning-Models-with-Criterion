@@ -470,7 +470,7 @@ if __name__ == "__main__":
 #        amazon_combined.save_result(result_save_path=amazon_combined_idf_result_save_path,
 #                                         decision_save_path=amazon_combined_idf_decision_save_path)
 #        del amazon_combined
-#
+
         french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
                                                doc_info_path=french_doc_info_path,
                                                categorized_words_paths=french_words_paths, 
@@ -481,7 +481,7 @@ if __name__ == "__main__":
         french_combined.save_result(result_save_path=french_combined_result_save_path,
                                          decision_save_path=french_combined_decision_save_path)
         del french_combined
-#
+
 #        french_combined = CombineCriteria(vocab_info_path=french_vocab_path,
 #                                               doc_info_path=french_doc_info_path,
 #                                               categorized_words_paths=french_words_paths, 
@@ -504,7 +504,7 @@ if __name__ == "__main__":
         merged_combined.save_result(result_save_path=merged_combined_result_save_path, 
                                          decision_save_path=merged_combined_decision_save_path)
         del merged_combined
-#
+
 #        merged_combined = CombineCriteria(vocab_info_path=merged_vocab_path,
 #                                               doc_info_path=merged_doc_info_path,
 #                                               categorized_words_paths=merged_words_paths, 
@@ -543,16 +543,16 @@ if __name__ == "__main__":
         scidocs_combined_scores.save_result(result_save_path=scidocs_combined_scores_embeds_save_path)
         del scidocs_combined_scores
 
-        scidocs_combined_scores = CombineScoresEmbeddings(vocab_info_path=scidocs_vocab_path, scores_info_path=scidocs_scores_info_path,
-                                                doc_info_path=scidocs_doc_info_path,
-                                                categorized_words_path=scidocs_combined_result_save_path,
-                                                criteria=criteria, 
-                                                top_k=top_k,
-                                                tf_idf=True)
-        scidocs_combined_scores.combine_results()
-        scidocs_combined_scores.save_result(result_save_path=scidocs_combined_scores_embeds_idf_save_path)
-        del scidocs_combined_scores
-
+#        scidocs_combined_scores = CombineScoresEmbeddings(vocab_info_path=scidocs_vocab_path, scores_info_path=scidocs_scores_info_path,
+#                                                doc_info_path=scidocs_doc_info_path,
+#                                                categorized_words_path=scidocs_combined_result_save_path,
+#                                                criteria=criteria, 
+#                                                top_k=top_k,
+#                                                tf_idf=True)
+#        scidocs_combined_scores.combine_results()
+#        scidocs_combined_scores.save_result(result_save_path=scidocs_combined_scores_embeds_idf_save_path)
+#        del scidocs_combined_scores
+#
         amazon_combined_scores = CombineScoresEmbeddings(vocab_info_path=amazon_vocab_path, scores_info_path=amazon_scores_info_path,
                                                doc_info_path=amazon_doc_info_path,
                                                categorized_words_path=amazon_combined_result_save_path,
@@ -562,16 +562,16 @@ if __name__ == "__main__":
         amazon_combined_scores.save_result(result_save_path=amazon_combined_scores_embeds_save_path)
         del amazon_combined_scores
 
-        amazon_combined_scores = CombineScoresEmbeddings(vocab_info_path=amazon_vocab_path, scores_info_path=amazon_scores_info_path,
-                                               doc_info_path=amazon_doc_info_path,
-                                               categorized_words_path=amazon_combined_result_save_path,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        amazon_combined_scores.combine_results()
-        amazon_combined_scores.save_result(result_save_path=amazon_combined_scores_embeds_idf_save_path)
-        del amazon_combined_scores
-
+#        amazon_combined_scores = CombineScoresEmbeddings(vocab_info_path=amazon_vocab_path, scores_info_path=amazon_scores_info_path,
+#                                               doc_info_path=amazon_doc_info_path,
+#                                               categorized_words_path=amazon_combined_result_save_path,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        amazon_combined_scores.combine_results()
+#        amazon_combined_scores.save_result(result_save_path=amazon_combined_scores_embeds_idf_save_path)
+#        del amazon_combined_scores
+#
         french_combined_scores = CombineScoresEmbeddings(vocab_info_path=french_vocab_path, scores_info_path=french_scores_info_path,
                                                doc_info_path=french_doc_info_path,
                                                categorized_words_path=french_combined_result_save_path,
@@ -581,16 +581,16 @@ if __name__ == "__main__":
         french_combined_scores.save_result(result_save_path=french_combined_scores_embeds_save_path)
         del french_combined_scores
 
-        french_combined_scores = CombineScoresEmbeddings(vocab_info_path=french_vocab_path, scores_info_path=french_scores_info_path,
-                                               doc_info_path=french_doc_info_path,
-                                               categorized_words_path=french_combined_result_save_path,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        french_combined_scores.combine_results()
-        french_combined_scores.save_result(result_save_path=french_combined_scores_embeds_idf_save_path)
-        del french_combined_scores
-
+#        french_combined_scores = CombineScoresEmbeddings(vocab_info_path=french_vocab_path, scores_info_path=french_scores_info_path,
+#                                               doc_info_path=french_doc_info_path,
+#                                               categorized_words_path=french_combined_result_save_path,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        french_combined_scores.combine_results()
+#        french_combined_scores.save_result(result_save_path=french_combined_scores_embeds_idf_save_path)
+#        del french_combined_scores
+#
         merged_combined_scores = CombineScoresEmbeddings(vocab_info_path=merged_vocab_path, scores_info_path=merged_scores_info_path,
                                                doc_info_path=merged_doc_info_path,
                                                categorized_words_path=merged_combined_result_save_path,
@@ -600,12 +600,12 @@ if __name__ == "__main__":
         merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_save_path)
         del merged_combined_scores
 
-        merged_combined_scores = CombineScoresEmbeddings(vocab_info_path=merged_vocab_path, scores_info_path=merged_scores_info_path,
-                                               doc_info_path=merged_doc_info_path,
-                                               categorized_words_path=merged_combined_result_save_path,
-                                               criteria=criteria, 
-                                               top_k=top_k,
-                                               tf_idf=True)
-        merged_combined_scores.combine_results()
-        merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_idf_save_path)
-        del merged_combined_scores
+#        merged_combined_scores = CombineScoresEmbeddings(vocab_info_path=merged_vocab_path, scores_info_path=merged_scores_info_path,
+#                                               doc_info_path=merged_doc_info_path,
+#                                               categorized_words_path=merged_combined_result_save_path,
+#                                               criteria=criteria, 
+#                                               top_k=top_k,
+#                                               tf_idf=True)
+#        merged_combined_scores.combine_results()
+#        merged_combined_scores.save_result(result_save_path=merged_combined_scores_embeds_idf_save_path)
+#        del merged_combined_scores
